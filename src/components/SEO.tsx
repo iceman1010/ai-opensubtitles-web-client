@@ -1,10 +1,10 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useLocation } from 'react-router-dom';
 
 interface SEOProps {
   title: string;
   description: string;
-  canonicalUrl?: string;
   type?: string;
   name?: string;
 }
@@ -12,12 +12,12 @@ interface SEOProps {
 const SEO: React.FC<SEOProps> = ({ 
   title, 
   description, 
-  canonicalUrl, 
   type = 'website',
   name = 'AI.OpenSubtitles.com' 
 }) => {
+  const location = useLocation();
   const siteUrl = 'https://ai.opensubtitles.com';
-  const fullUrl = canonicalUrl ? (canonicalUrl.startsWith('http') ? canonicalUrl : `${siteUrl}${canonicalUrl}`) : siteUrl;
+  const fullUrl = `${siteUrl}${location.pathname}`;
 
   return (
     <Helmet>
