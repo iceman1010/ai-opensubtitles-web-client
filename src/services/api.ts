@@ -217,7 +217,7 @@ export interface RecentMediaItem {
 // In production, we use the dedicated Nginx proxy path to bypass CORS and inject the required User-Agent
 const DEFAULT_BASE_URL = import.meta.env.DEV
   ? '/api/v1'
-  : '/proxy';
+  : 'https://api.opensubtitles.com/api/v1';
 
 export class OpenSubtitlesAPI {
   private baseURL = DEFAULT_BASE_URL;
