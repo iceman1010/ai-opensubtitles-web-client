@@ -42,16 +42,9 @@ A web-based application for AI-powered transcription and translation services us
 
 ### Setup
 
-1. **Get API Credentials**: Register at [www.opensubtitles.com](https://www.opensubtitles.com) to obtain:
-   - Username
-   - Password
-   - API Key
-
-2. **Access the Web App**: Open the web client in your browser
-
-3. **Configure Credentials**: Enter your API credentials in the login screen
-
-4. **Start Processing**: Select files and choose transcription or translation options
+1. **Access the Web App**: Open the web client in your browser
+2. **Login**: Enter your OpenSubtitles.com username and password
+3. **Start Processing**: Select files and choose transcription or translation options
 
 ## Usage
 
