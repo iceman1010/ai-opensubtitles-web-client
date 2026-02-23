@@ -1,0 +1,517 @@
+/* CSS Custom Properties for theming (adapted from desktop app) */
+:root {
+  /* Light mode (default) */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #f0f0f0;
+  --text-primary: #333333;
+  --text-secondary: #6c757d;
+  --text-muted: #999999;
+  --border-color: #dee2e6;
+  --border-light: #e9ecef;
+  --accent-color: #3498db;
+  --accent-hover: #2980b9;
+  --success-color: #28a745;
+  --warning-color: #ffc107;
+  --danger-color: #dc3545;
+  --info-color: #17a2b8;
+
+  /* Sidebar */
+  --sidebar-bg: #5f5f5f;
+  --sidebar-text: #ffffff;
+  --sidebar-hover: rgba(255, 255, 255, 0.1);
+  --sidebar-active: rgba(255, 255, 255, 0.2);
+
+  /* Inputs */
+  --input-bg: #ffffff;
+  --input-border: #ced4da;
+  --input-focus-border: #3498db;
+  --input-text: #333333;
+
+  /* Cards */
+  --card-bg: #ffffff;
+  --card-border: #dee2e6;
+  --card-shadow: rgba(0, 0, 0, 0.1);
+
+  /* Buttons */
+  --btn-primary-bg: #3498db;
+  --btn-primary-text: #ffffff;
+  --btn-secondary-bg: #6c757d;
+  --btn-secondary-text: #ffffff;
+}
+
+/* Dark mode */
+.dark-mode {
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #2d2d2d;
+  --bg-tertiary: #404040;
+  --text-primary: #e0e0e0;
+  --text-secondary: #aaaaaa;
+  --text-muted: #777777;
+  --border-color: #444444;
+  --border-light: #3a3a3a;
+  --accent-color: #0066cc;
+  --accent-hover: #0055aa;
+
+  --sidebar-bg: #2a2a2a;
+  --sidebar-text: #e0e0e0;
+
+  --input-bg: #333333;
+  --input-border: #555555;
+  --input-focus-border: #0066cc;
+  --input-text: #e0e0e0;
+
+  --card-bg: #2d2d2d;
+  --card-border: #444444;
+  --card-shadow: rgba(0, 0, 0, 0.3);
+
+  --btn-primary-bg: #0066cc;
+}
+
+/* Reset & base */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* App layout — leave room for the fixed status bar (26px) */
+.app {
+  display: flex;
+  height: calc(100vh - 26px);
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 250px;
+  min-width: 250px;
+  background-color: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar h2 {
+  padding: 20px 15px 10px;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 10px;
+}
+
+.sidebar nav {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar nav ul li {
+  margin: 2px 8px;
+}
+
+.sidebar nav ul li button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  color: var(--sidebar-text);
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.sidebar nav ul li button:hover {
+  background-color: var(--sidebar-hover);
+}
+
+.sidebar nav ul li button.active {
+  background-color: var(--sidebar-active);
+  font-weight: 600;
+}
+
+.sidebar nav ul li button i {
+  width: 20px;
+  text-align: center;
+  font-size: 14px;
+  transition: transform 0.2s ease;
+}
+
+.sidebar nav ul li button:hover i {
+  transform: scale(1.3);
+}
+
+.sidebar-version {
+  text-align: center;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 8px 0;
+}
+
+/* Main content */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 30px;
+  background-color: var(--bg-primary);
+  position: relative;
+}
+
+/* Form elements */
+input, select, textarea {
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--input-text);
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s ease, background-color 0.3s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--input-focus-border);
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.15);
+}
+
+/* Buttons */
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-primary {
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+/* Cards */
+.card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px var(--card-shadow);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Drop zone */
+.drop-zone {
+  border: 2px dashed var(--border-color);
+  border-radius: 12px;
+  padding: 40px;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  background-color: var(--bg-secondary);
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+  border-color: var(--accent-color);
+  background-color: rgba(52, 152, 219, 0.05);
+}
+
+.drop-zone i {
+  font-size: 48px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.drop-zone p {
+  color: var(--text-secondary);
+  margin: 4px 0;
+}
+
+/* Status bar */
+.status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 26px;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  z-index: 100;
+  transition: background-color 0.3s ease;
+}
+
+/* Progress bar */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: var(--bg-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: var(--accent-color);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Logo glow animation */
+@keyframes logoGlow {
+  0% { box-shadow: 0 0 5px rgba(74, 144, 226, 0.3); }
+  50% { box-shadow: 0 0 15px rgba(74, 144, 226, 0.6); }
+  100% { box-shadow: 0 0 5px rgba(74, 144, 226, 0.3); }
+}
+
+.sidebar-logo-glow {
+  animation: logoGlow 2s ease-in-out infinite;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 60px;
+    min-width: 60px;
+  }
+  .sidebar h2 {
+    display: none;
+  }
+  .sidebar nav ul li button {
+    justify-content: center;
+    padding: 12px;
+  }
+  .sidebar nav ul li button span,
+  .sidebar nav ul li button:not(:has(i)) {
+    display: none;
+  }
+  .main-content {
+    padding: 15px;
+  }
+}
+
+/* Form groups (Login, Preferences) */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+}
+
+/* Status messages */
+.status-message {
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.status-message.error {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: var(--danger-color);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.status-message.success {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: var(--success-color);
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.status-message.info {
+  background-color: rgba(23, 162, 184, 0.1);
+  color: var(--info-color);
+  border: 1px solid rgba(23, 162, 184, 0.3);
+}
+
+/* Options container */
+.options-container {
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-secondary);
+}
+
+.options-container h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+/* File info section */
+.file-info {
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-secondary);
+}
+
+.file-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+/* Action section */
+.action-section {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Main screen layout */
+.main-screen h1 {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.main-screen p {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Options section */
+.options-section {
+  margin: 0;
+}
+
+/* Login screen */
+.login-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 20px;
+}
+
+.login-form {
+  width: 100%;
+  max-width: 400px;
+  padding: 30px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px var(--card-shadow);
+}
+
+.login-form h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+/* Credits screen */
+.credits-screen {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Responsive improvements */
+@media (max-width: 480px) {
+  .main-content {
+    padding: 10px;
+  }
+
+  .options-container {
+    padding: 12px;
+  }
+
+  .file-info {
+    padding: 12px;
+  }
+}
