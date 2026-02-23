@@ -1,28 +1,55 @@
 <!DOCTYPE html>
 <html>
-<head><title>Debug</title></head>
+<head><title>API Header Debug</title></head>
 <body>
+<h1>API Header Debug</h1>
+<pre id="out">Running tests...</pre>
 <script>
 async function test() {
+  const out = document.getElementById('out');
+  const results = [];
+
   const headers = {
     'Content-Type': 'application/json',
+    'Api-Key': 'YzhaGkIg6dMSJ47QoihkhikfRmvbJTn7',
     'User-Agent': 'aios v1',
-    'Api-Key': 'YzhaGkIg6dMSJ47QoihkhikfRmvbJTn7'
+    'X-User-Agent': 'aios v1'
   };
-  
-  const body = JSON.stringify({username: 'test', password: 'test'});
-  
+
+  // Test 1: Hit the infos endpoint (GET, no auth needed)
+  results.push('=== Test 1: GET /infos ===');
   try {
-    const res = await fetch('/ai-web/api-log.php', {
-      method: 'POST',
-      headers: headers,
-      body: body
+    const res = await fetch('https://api.opensubtitles.com/api/v1/infos', {
+      method: 'GET',
+      headers: headers
+    });
+    results.push('Status: ' + res.status + ' ' + res.statusText);
+    const text = await res.text();
+    try {
+      results.push('Response: ' + JSON.stringify(JSON.parse(text), null, 2));
+    } catch {
+      results.push('Response: ' + text.substring(0, 500));
+    }
+  } catch(e) {
+    results.push('Error: ' + e.message);
+  }
+
+  // Test 2: Check which headers browser actually sends (via httpbin)
+  results.push('\n=== Test 2: Headers seen by server (httpbin) ===');
+  try {
+    const res = await fetch('https://httpbin.org/headers', {
+      headers: {
+        'User-Agent': 'aios v1',
+        'X-User-Agent': 'aios v1'
+      }
     });
     const json = await res.json();
-    document.body.innerHTML = '<pre>' + JSON.stringify(json, null, 2) + '</pre>';
+    results.push(JSON.stringify(json, null, 2));
   } catch(e) {
-    document.body.innerHTML = 'Error: ' + e.message;
+    results.push('Error: ' + e.message);
   }
+
+  out.textContent = results.join('\n');
 }
 test();
 </script>
