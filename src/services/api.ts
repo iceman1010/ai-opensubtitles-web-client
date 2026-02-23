@@ -633,20 +633,14 @@ export class OpenSubtitlesAPI {
   }
 
   async getCredits(): Promise<{ success: boolean; credits?: number; error?: string }> {
-    console.log('[DEBUG getCredits] Called, token set:', !!this.token, 'token:', this.token?.substring(0, 20) + '...');
     try {
       return await apiRequestWithRetry(async () => {
-        const headers = this.getHeaders(true);
-        console.log('[DEBUG getCredits] Headers:', JSON.stringify(headers));
-        const response = await fetch(this.getAIUrl('/credits'), { method: 'POST', headers });
-        console.log('[DEBUG getCredits] Response status:', response.status);
+        const response = await fetch(this.getAIUrl('/credits'), { method: 'POST', headers: this.getHeaders(true) });
         if (!response.ok) { const e = new Error(`Request failed: ${response.status}`); (e as any).status = response.status; throw e; }
         const responseData = await response.json();
-        console.log('[DEBUG getCredits] Response data:', responseData);
         return { success: true, credits: responseData.data?.credits || responseData.credits || 0 };
       }, 'Get Credits', 3);
     } catch (error: any) {
-      console.error('[DEBUG getCredits] Error:', error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }
