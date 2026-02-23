@@ -2,6 +2,8 @@
 
 A web-based application for AI-powered transcription and translation services using the OpenSubtitles AI API. This is the web port of the [desktop client](https://github.com/iceman1010/ai-opensubtitles-desktop-client).
 
+# Live Version: https://ai.opensubtitles.com/ai-web/
+
 ## Features
 
 ### Core Functionality
