@@ -214,9 +214,10 @@ export interface RecentMediaItem {
 }
 
 // In dev mode, use relative URL so Vite proxy handles CORS
+// In production, we use the dedicated Nginx proxy path to bypass CORS and inject the required User-Agent
 const DEFAULT_BASE_URL = import.meta.env.DEV
   ? '/api/v1'
-  : 'https://api.opensubtitles.com/api/v1';
+  : '/ai-web/api-proxy';
 
 export class OpenSubtitlesAPI {
   private baseURL = DEFAULT_BASE_URL;
