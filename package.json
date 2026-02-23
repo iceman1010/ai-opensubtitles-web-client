@@ -18,12 +18,15 @@
     "react": "^18.3.1",
     "react-complex-tree": "^2.6.1",
     "react-dom": "^18.3.1",
-    "react-paginate": "^8.3.0"
+    "react-helmet-async": "^2.0.5",
+    "react-paginate": "^8.3.0",
+    "react-router-dom": "^7.13.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^4.3.3",
     "@vitest/coverage-v8": "^4.0.18",
     "@vitest/ui": "^4.0.18",

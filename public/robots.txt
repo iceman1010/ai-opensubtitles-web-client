@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /credits
+Disallow: /batch
+Disallow: /recent
+
+Sitemap: https://ai.opensubtitles.com/sitemap.xml
