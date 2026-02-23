@@ -1,15 +1,31 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { BrowserRouter as Router, Routes, Route, NavLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import Login from './components/Login';
 import Credits from './components/Credits';
 import MainScreen from './components/MainScreen';
 import BatchScreen from './components/BatchScreen';
 import RecentMedia from './components/RecentMedia';
 import Search from './components/Search';
+import SEO from './components/SEO';
+import ProtectedRoute from './components/ProtectedRoute';
 import { APIProvider, useAPI } from './contexts/APIContext';
 import { storageService, AppConfig } from './services/storageService';
 import { activityTracker } from './utils/activityTracker';
 import { logger } from './utils/errorLogger';
 import appConfig from './config/appConfig.json';
+
+// Scroll to top on route change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const el = document.querySelector('.main-content');
+    if (el) el.scrollTop = 0;
+  }, [pathname]);
+
+  return null;
+}
 
 function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -40,16 +56,20 @@ function App() {
     return <div className="app"><div className="main-content"><p>Loading...</p></div></div>;
   }
 
-  const hasCredentials = config?.username && config?.password && config?.apiKey;
+  const hasCredentials = !!(config?.username && config?.password && config?.apiKey);
 
   return (
-    <APIProvider>
-      <AppContent
-        config={config}
-        setConfig={setConfig}
-        hasCredentials={!!hasCredentials}
-      />
-    </APIProvider>
+    <HelmetProvider>
+      <Router>
+        <APIProvider>
+          <AppContent
+            config={config}
+            setConfig={setConfig}
+            hasCredentials={hasCredentials}
+          />
+        </APIProvider>
+      </Router>
+    </HelmetProvider>
   );
 }
 
@@ -68,13 +88,14 @@ function AppContent({
     credits,
     error: apiError,
     login,
-    logout,
     autoLogin,
     updateCredits,
     updateConfig,
   } = useAPI();
 
-  const [currentScreen, setCurrentScreen] = useState<'login' | 'main' | 'batch' | 'recent-media' | 'search' | 'credits'>('main');
+  const navigate = useNavigate();
+  const location = useLocation();
+  
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTask, setCurrentTask] = useState<string | undefined>(undefined);
   const [isApiActive, setIsApiActive] = useState(false);
@@ -85,15 +106,6 @@ function AppContent({
       autoLogin();
     }
   }, [hasCredentials, autoLogin]);
-
-  // Route to login if no credentials
-  useEffect(() => {
-    if (!hasCredentials) {
-      setCurrentScreen('login');
-    } else if (currentScreen === 'login' && isAuthenticated) {
-      setCurrentScreen('main');
-    }
-  }, [hasCredentials, isAuthenticated, currentScreen]);
 
   // Track API activity for logo glow
   useEffect(() => {
@@ -116,7 +128,7 @@ function AppContent({
       const success = await login(username, password, apiKey);
       if (success) {
         setConfig(storageService.getConfig());
-        setCurrentScreen('main');
+        navigate('/'); // Navigate to main screen on success
         return true;
       }
       return false;
@@ -131,71 +143,51 @@ function AppContent({
     updateCredits(creditsData);
   };
 
-  const handleScreenChange = (screen: typeof currentScreen) => {
-    setCurrentScreen(screen);
-    setTimeout(() => {
-      const el = document.querySelector('.main-content');
-      if (el) el.scrollTop = 0;
-    }, 0);
-  };
-
   const handleDarkModeToggle = () => {
     const newDarkMode = !config?.darkMode;
     updateConfig({ darkMode: newDarkMode });
     setConfig(storageService.getConfig());
   };
 
+  const isLoginPage = location.pathname === '/login';
+
   return (
     <div className="app">
-      {currentScreen !== 'login' && (
+      <ScrollToTop />
+      {!isLoginPage && (
         <div className="sidebar">
           <h2>{appConfig.name}</h2>
           <nav>
             <ul>
               <li>
-                <button
-                  className={currentScreen === 'main' ? 'active' : ''}
-                  onClick={() => handleScreenChange('main')}
-                >
+                <NavLink to="/" className={({ isActive }) => isActive ? 'active' : ''} end>
                   <i className="fas fa-file-audio"></i>
                   <span>Single File</span>
-                </button>
+                </NavLink>
               </li>
               <li>
-                <button
-                  className={currentScreen === 'batch' ? 'active' : ''}
-                  onClick={() => handleScreenChange('batch')}
-                >
+                <NavLink to="/batch" className={({ isActive }) => isActive ? 'active' : ''}>
                   <i className="fas fa-layer-group"></i>
                   <span>Batch</span>
-                </button>
+                </NavLink>
               </li>
               <li>
-                <button
-                  className={currentScreen === 'recent-media' ? 'active' : ''}
-                  onClick={() => handleScreenChange('recent-media')}
-                >
+                <NavLink to="/recent" className={({ isActive }) => isActive ? 'active' : ''}>
                   <i className="fas fa-history"></i>
                   <span>Recent Media</span>
-                </button>
+                </NavLink>
               </li>
               <li>
-                <button
-                  className={currentScreen === 'search' ? 'active' : ''}
-                  onClick={() => handleScreenChange('search')}
-                >
+                <NavLink to="/search" className={({ isActive }) => isActive ? 'active' : ''}>
                   <i className="fas fa-search"></i>
                   <span>Search</span>
-                </button>
+                </NavLink>
               </li>
               <li>
-                <button
-                  className={currentScreen === 'credits' ? 'active' : ''}
-                  onClick={() => handleScreenChange('credits')}
-                >
+                <NavLink to="/credits" className={({ isActive }) => isActive ? 'active' : ''}>
                   <i className="fas fa-coins"></i>
                   <span>Credits</span>
-                </button>
+                </NavLink>
               </li>
             </ul>
           </nav>
@@ -266,49 +258,87 @@ function AppContent({
       )}
 
       <div className="main-content">
-        {currentScreen === 'login' && (
-          <Login onLogin={handleLogin} setAppProcessing={setAppProcessing} loginError={apiError} />
-        )}
-        {currentScreen === 'main' && config && (
-          <MainScreen
-            config={config}
-            setAppProcessing={setAppProcessing}
-            onNavigateToCredits={() => handleScreenChange('credits')}
-            onCreditsUpdate={handleCreditsUpdate}
-            onProcessingStateChange={(p) => setIsProcessing(p)}
-          />
-        )}
-        {currentScreen === 'batch' && config && (
-          <BatchScreen
-            config={config}
-            setAppProcessing={setAppProcessing}
-            onProcessingStateChange={(p) => setIsProcessing(p)}
-          />
-        )}
-        {currentScreen === 'recent-media' && config && (
-          <RecentMedia
-            setAppProcessing={setAppProcessing}
-            isVisible={true}
-          />
-        )}
-        {currentScreen === 'search' && config && (
-          <Search
-            setAppProcessing={setAppProcessing}
-          />
-        )}
-        {currentScreen === 'credits' && config && (
-          <Credits
-            config={config}
-            setAppProcessing={setAppProcessing}
-            isVisible={true}
-          />
-        )}
+        <Routes>
+          <Route path="/login" element={
+            <>
+              <SEO title="Login" description="Login to AI OpenSubtitles to manage your subtitles." />
+              <Login onLogin={handleLogin} setAppProcessing={setAppProcessing} loginError={apiError} />
+            </>
+          } />
+          
+          <Route path="/" element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <SEO title="Transcription & Translation" description="Upload and process single video or audio files." />
+              {config && (
+                <MainScreen
+                  config={config}
+                  setAppProcessing={setAppProcessing}
+                  onNavigateToCredits={() => navigate('/credits')}
+                  onCreditsUpdate={handleCreditsUpdate}
+                  onProcessingStateChange={(p) => setIsProcessing(p)}
+                />
+              )}
+            </ProtectedRoute>
+          } />
+
+          <Route path="/batch" element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <SEO title="Batch Processing" description="Process multiple files at once." />
+              {config && (
+                <BatchScreen
+                  config={config}
+                  setAppProcessing={setAppProcessing}
+                  onProcessingStateChange={(p) => setIsProcessing(p)}
+                />
+              )}
+            </ProtectedRoute>
+          } />
+
+          <Route path="/recent" element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <SEO title="Recent Media" description="View your recently processed media files." />
+              {config && (
+                <RecentMedia
+                  setAppProcessing={setAppProcessing}
+                  isVisible={true}
+                />
+              )}
+            </ProtectedRoute>
+          } />
+
+          <Route path="/search" element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <SEO title="Search" description="Search for subtitles in the OpenSubtitles database." />
+              {config && (
+                <Search
+                  setAppProcessing={setAppProcessing}
+                />
+              )}
+            </ProtectedRoute>
+          } />
+
+          <Route path="/credits" element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <SEO title="Credits" description="Manage your AI OpenSubtitles credits." />
+              {config && (
+                <Credits
+                  config={config}
+                  setAppProcessing={setAppProcessing}
+                  isVisible={true}
+                />
+              )}
+            </ProtectedRoute>
+          } />
+          
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </div>
 
       {/* Floating Credits Display */}
-      {credits && currentScreen !== 'login' && (
+      {credits && !isLoginPage && (
         <div
-          onClick={() => setCurrentScreen('credits')}
+          onClick={() => navigate('/credits')}
           style={{
             position: 'fixed',
             top: '20px',
