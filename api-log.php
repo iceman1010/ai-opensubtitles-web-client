@@ -11,15 +11,10 @@ foreach ($headers as $name => $value) {
 $log .= "\n---END---\n";
 
 $logFile = '/var/www/html/ai-web/api-debug-log.txt';
-$result = file_put_contents($logFile, $log, FILE_APPEND);
-if ($result === false) {
-    $log .= "ERROR: Could not write to $logFile\n";
-    $log .= "Error: " . error_get_last()['message'] . "\n";
-}
+file_put_contents($logFile, $log, FILE_APPEND);
 
 echo json_encode([
     'received' => true,
     'headers' => $headers,
-    'uri' => $_SERVER['REQUEST_URI'],
-    'write_result' => $result
+    'uri' => $_SERVER['REQUEST_URI']
 ], JSON_PRETTY_PRINT);

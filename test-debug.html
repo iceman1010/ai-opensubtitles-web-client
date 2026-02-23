@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head><title>Debug</title></head>
+<body>
+<script>
+async function test() {
+  const headers = {
+    'Content-Type': 'application/json',
+    'User-Agent': 'aios v1',
+    'Api-Key': 'YzhaGkIg6dMSJ47QoihkhikfRmvbJTn7'
+  };
+  
+  const body = JSON.stringify({username: 'test', password: 'test'});
+  
+  try {
+    const res = await fetch('/ai-web/api-log.php', {
+      method: 'POST',
+      headers: headers,
+      body: body
+    });
+    const json = await res.json();
+    document.body.innerHTML = '<pre>' + JSON.stringify(json, null, 2) + '</pre>';
+  } catch(e) {
+    document.body.innerHTML = 'Error: ' + e.message;
+  }
+}
+test();
+</script>
+</body>
+</html>
