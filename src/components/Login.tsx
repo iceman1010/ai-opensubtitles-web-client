@@ -12,14 +12,16 @@ function Login({ onLogin, setAppProcessing, loginError }: LoginProps) {
   const [apiKey] = useState('YzhaGkIg6dMSJ47QoihkhikfRmvbJTn7');
   const [isLoading, setIsLoading] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [loginAttempted, setLoginAttempted] = useState(false);
 
   // Show API error (from context) if available, otherwise local error
   const displayError = loginError || localError;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) return;
-
+    if (!username || !password || isLoading || loginAttempted) return;
+    
+    setLoginAttempted(true);
     setIsLoading(true);
     setLocalError('');
     setAppProcessing(true, 'Logging in...');
@@ -28,8 +30,6 @@ function Login({ onLogin, setAppProcessing, loginError }: LoginProps) {
       if (success) {
         localStorage.setItem('lastUsername', username);
       } else {
-        // API context error will show via loginError prop on next render;
-        // set local fallback in case context error isn't available
         setLocalError('Login failed. Please check your credentials.');
         setAppProcessing(true, 'Login failed');
         setTimeout(() => setAppProcessing(false), 3000);
@@ -40,6 +40,7 @@ function Login({ onLogin, setAppProcessing, loginError }: LoginProps) {
       setTimeout(() => setAppProcessing(false), 3000);
     } finally {
       setIsLoading(false);
+      setTimeout(() => setLoginAttempted(false), 2000);
     }
   };
 
