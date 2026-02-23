@@ -119,11 +119,15 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
       try {
         // Try cached token first
         const hasCached = await apiRef.current.loadCachedToken();
+        console.log('[DEBUG APIContext] loadCachedToken result:', hasCached);
         if (hasCached) {
+          console.log('[DEBUG APIContext] Calling getCredits...');
           const creditsResult = await apiRef.current.getCredits();
+          console.log('[DEBUG APIContext] getCredits result:', creditsResult);
           if (creditsResult.success) {
             setIsAuthenticated(true);
             setCredits({ used: 0, remaining: creditsResult.credits || 0 });
+            console.log('[DEBUG APIContext] Credits set:', creditsResult.credits);
             await loadAPIInfo(apiRef.current);
             logger.info('APIContext', 'Cached token verified');
             return true;
