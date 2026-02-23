@@ -285,6 +285,7 @@ export class OpenSubtitlesAPI {
       'Accept': 'application/json',
       'Api-Key': this.apiKey || '',
       'User-Agent': getUserAgent(),
+      'X-User-Agent': getUserAgent(),
     };
     if (contentType) headers['Content-Type'] = contentType;
     if (includeAuth && this.token) headers['Authorization'] = `Bearer ${this.token}`;
