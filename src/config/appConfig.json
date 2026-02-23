@@ -3,5 +3,5 @@
   "version": "1.0.0",
   "description": "Web client for OpenSubtitles AI API",
   "author": "OpenSubtitles Team",
-  "userAgent": "AI.OS Web v1.0.0"
+  "userAgent": "aios v1"
 }
