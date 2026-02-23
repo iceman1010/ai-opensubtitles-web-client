@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><title>API Proxy Test</title></head>
+<body>
+<h1>API Proxy Test</h1>
+<pre id="output">Loading...</pre>
+<script>
+async function test() {
+  const out = document.getElementById('output');
+  try {
+    const res = await fetch('/ai-web/api-proxy/infos');
+    const json = await res.json();
+    out.textContent = JSON.stringify(json, null, 2);
+  } catch (e) {
+    out.textContent = 'Error: ' + e.message;
+  }
+}
+test();
+</script>
+</body>
+</html>
