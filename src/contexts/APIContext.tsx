@@ -103,17 +103,13 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
   };
 
   // ── Core authentication (single attempt, no cascading retries) ──
-  const performLogin = async (user: string, pass: string, apiKey: string): Promise<boolean> => {
-    console.log(`[DEBUG API] performLogin called for ${user} (authAttemptedRef: ${authAttemptedRef.current}, authPromiseRef: ${!!authPromiseRef.current})`);
-    
+  const performLogin = async (user: string, pass: string, apiKey: string, isAutoLogin: boolean = false): Promise<boolean> => {
     // Prevent multiple simultaneous login attempts
     if (authPromiseRef.current) {
-      console.log(`[DEBUG API] performLogin aborted - already in progress`);
       return authPromiseRef.current;
     }
 
     const promise = (async () => {
-      console.log(`[DEBUG API] performLogin executing...`);
       setIsAuthenticating(true);
       setIsLoading(true);
       setError(null);
@@ -123,12 +119,9 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
       try {
         // Try cached token first - but DON'T do fresh login if invalid
         const hasCached = await apiRef.current.loadCachedToken();
-        console.log(`[DEBUG API] loadCachedToken returned: ${hasCached}`);
         
         if (hasCached) {
-          console.log(`[DEBUG API] Calling getCredits to verify token...`);
           const creditsResult = await apiRef.current.getCredits();
-          console.log(`[DEBUG API] getCredits result:`, creditsResult);
           
           if (creditsResult.success) {
             setIsAuthenticated(true);
@@ -139,24 +132,30 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
           }
           // Cached token invalid - clear it but DON'T try fresh login
           // Let user manually log in to get new token
-          console.warn(`[DEBUG API] Token invalid (getCredits failed), clearing token and aborting auto-login`);
           logger.warn('APIContext', 'Cached token invalid, please login manually');
           await apiRef.current.clearCachedToken();
-          setError('Session expired. Please log in again.');
-          return false;
+          
+          // If this was an auto-login attempt, we just fail silently and let the user login manually
+          if (isAutoLogin) {
+            setError('Session expired. Please log in again.');
+            return false;
+          }
         }
 
-        console.log(`[DEBUG API] No cached token, calling api.login()...`);
+        // IMPORTANT FIX: Never automatically hit /login on page load if token is expired/missing
+        // This prevents rate limit bans (429 Too many login attempts) if token fails
+        if (isAutoLogin && !hasCached) {
+            return false;
+        }
+
         // Fresh login — single attempt, no retries
         const result = await apiRef.current.login(user, pass);
-        console.log(`[DEBUG API] api.login result:`, result);
         
         if (result.success) {
           setIsAuthenticated(true);
           logger.info('APIContext', `Logged in as ${user}`);
 
           // Load credits first, then API info — sequential to avoid hammering server
-          console.log(`[DEBUG API] Login success, loading credits...`);
           const creditsResult = await apiRef.current.getCredits();
           if (creditsResult.success) {
             setCredits({ used: 0, remaining: creditsResult.credits || 0 });
@@ -168,7 +167,6 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
         setError(result.error || 'Login failed');
         return false;
       } catch (err: any) {
-        console.error(`[DEBUG API] performLogin threw:`, err);
         logger.error('APIContext', 'Authentication error', err);
         setError(err.message || 'Authentication failed');
         return false;
@@ -182,39 +180,32 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
     try {
       return await promise;
     } finally {
-      console.log(`[DEBUG API] performLogin finished, clearing promise ref`);
       authPromiseRef.current = null;
     }
   };
 
   // ── Public login (saves credentials to storage) ──
   const login = useCallback(async (user: string, pass: string, apiKey: string): Promise<boolean> => {
-    console.log(`[DEBUG API] public login() called manually`);
     storageService.saveConfig({ username: user, password: pass, apiKey });
     setConfig(storageService.getConfig());
-    return performLogin(user, pass, apiKey);
+    return performLogin(user, pass, apiKey, false);
   }, []);
 
   // ── Auto-login from stored credentials (guarded against double-fire) ──
   const autoLogin = useCallback(async (): Promise<boolean> => {
-    console.log(`[DEBUG API] autoLogin() called (authAttempted: ${authAttemptedRef.current}, promise: ${!!authPromiseRef.current})`);
-    
     // Prevent React strict mode or re-renders from firing multiple auto-logins
     if (authAttemptedRef.current || authPromiseRef.current) {
-      console.log(`[DEBUG API] autoLogin() aborted - already attempted or in progress`);
       return false;
     }
     authAttemptedRef.current = true;
 
     const cfg = storageService.getConfig();
-    console.log(`[DEBUG API] autoLogin() checking config: hasApiKey=${!!cfg.apiKey}, hasUser=${!!cfg.username}, hasPass=${!!cfg.password}`);
     
     if (!cfg.apiKey || !cfg.username || !cfg.password) return false;
     if (cfg.apiBaseUrl) apiRef.current.setBaseUrl(cfg.apiBaseUrl);
     if (cfg.apiUrlParameter) apiRef.current.setApiUrlParameter(cfg.apiUrlParameter);
     
-    console.log(`[DEBUG API] autoLogin() proceeding to performLogin()`);
-    return performLogin(cfg.username, cfg.password, cfg.apiKey);
+    return performLogin(cfg.username, cfg.password, cfg.apiKey, true);
   }, []);
 
   const logout = useCallback(() => {
