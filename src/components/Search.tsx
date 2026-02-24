@@ -121,7 +121,12 @@ function Search({ setAppProcessing }: SearchProps) {
       setHasFeatureSearched(true);
       setAppProcessing(true, 'Searching movies and TV shows');
 
-      const response = await searchForFeatures(params);
+      const searchParamsWithPage = {
+        ...params,
+        page: page + 1, // API uses 1-based pagination
+      };
+
+      const response = await searchForFeatures(searchParamsWithPage);
 
       if (response.success && response.data) {
         setFeatureResults(response.data.data || []);
