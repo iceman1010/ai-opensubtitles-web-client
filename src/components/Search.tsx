@@ -67,40 +67,51 @@ function Search({ setAppProcessing }: SearchProps) {
 
   const RESULTS_PER_PAGE = 20;
 
+  // Store ALL results from the API, then slice per page for display
+  const [allSearchResults, setAllSearchResults] = useState<SubtitleSearchResult[]>([]);
+  const [allFeatureResults, setAllFeatureResults] = useState<Feature[]>([]);
+
   const handleSearch = async (params: SubtitleSearchParams, page: number = 0) => {
     try {
       setIsSearching(true);
       setHasSearched(true);
       setAppProcessing(true, 'Searching subtitles');
 
-      const searchParamsWithPage = {
-        ...params,
-        page: page + 1, // API uses 1-based pagination
-      };
+      // Only fetch from API on first page or new search; otherwise just paginate locally
+      if (page === 0 || allSearchResults.length === 0) {
+        const response = await searchSubtitles(params);
 
-      const response = await searchSubtitles(searchParamsWithPage);
+        if (response.success && response.data) {
+          const dataArray = Array.isArray(response.data.data) ? response.data.data : [];
+          setAllSearchResults(dataArray);
 
-      if (response.success && response.data) {
-        const dataArray = Array.isArray(response.data.data) ? response.data.data : [];
-        setSearchResults(dataArray);
-        setCurrentPage(page);
+          const totalPagesFromApi = response.data.total_pages;
+          if (totalPagesFromApi && totalPagesFromApi > 0 && dataArray.length <= RESULTS_PER_PAGE) {
+            // API actually paginates — use its total_pages
+            setTotalPages(totalPagesFromApi);
+          } else {
+            // API returned all results — calculate pages client-side
+            setTotalPages(Math.ceil(dataArray.length / RESULTS_PER_PAGE));
+          }
 
-        const totalPagesFromApi = response.data.total_pages;
-        if (totalPagesFromApi && totalPagesFromApi > 0) {
-          setTotalPages(totalPagesFromApi);
+          setSearchResults(dataArray.slice(0, RESULTS_PER_PAGE));
+          setCurrentPage(0);
+          setLastSearchParams(params);
         } else {
-          const totalResults = response.data.total_count || dataArray.length || 0;
-          setTotalPages(Math.ceil(totalResults / RESULTS_PER_PAGE));
+          console.error('Search failed:', response.error);
+          setAllSearchResults([]);
+          setSearchResults([]);
+          setTotalPages(0);
         }
-
-        setLastSearchParams(params);
       } else {
-        console.error('Search failed:', response.error);
-        setSearchResults([]);
-        setTotalPages(0);
+        // Client-side pagination: slice from cached results
+        const start = page * RESULTS_PER_PAGE;
+        setSearchResults(allSearchResults.slice(start, start + RESULTS_PER_PAGE));
+        setCurrentPage(page);
       }
     } catch (error) {
       console.error('Search error:', error);
+      setAllSearchResults([]);
       setSearchResults([]);
       setTotalPages(0);
     } finally {
@@ -111,7 +122,12 @@ function Search({ setAppProcessing }: SearchProps) {
 
   const handlePageChange = (page: number) => {
     if (lastSearchParams) {
-      handleSearch(lastSearchParams, page);
+      // Client-side pagination from cached results
+      const start = page * RESULTS_PER_PAGE;
+      setSearchResults(allSearchResults.slice(start, start + RESULTS_PER_PAGE));
+      setCurrentPage(page);
+      // Scroll to top of results
+      document.querySelector('.main-content')?.scrollTo(0, 0);
     }
   };
 
@@ -121,33 +137,37 @@ function Search({ setAppProcessing }: SearchProps) {
       setHasFeatureSearched(true);
       setAppProcessing(true, 'Searching movies and TV shows');
 
-      const searchParamsWithPage = {
-        ...params,
-        page: page + 1, // API uses 1-based pagination
-      };
+      if (page === 0 || allFeatureResults.length === 0) {
+        const response = await searchForFeatures(params);
 
-      const response = await searchForFeatures(searchParamsWithPage);
+        if (response.success && response.data) {
+          const dataArray = response.data.data || [];
+          setAllFeatureResults(dataArray);
 
-      if (response.success && response.data) {
-        setFeatureResults(response.data.data || []);
-        setFeatureCurrentPage(page);
+          const totalPagesFromApi = response.data.total_pages;
+          if (totalPagesFromApi && totalPagesFromApi > 0 && dataArray.length <= RESULTS_PER_PAGE) {
+            setFeatureTotalPages(totalPagesFromApi);
+          } else {
+            setFeatureTotalPages(Math.ceil(dataArray.length / RESULTS_PER_PAGE));
+          }
 
-        const totalPagesFromApi = response.data.total_pages;
-        if (totalPagesFromApi && totalPagesFromApi > 0) {
-          setFeatureTotalPages(totalPagesFromApi);
+          setFeatureResults(dataArray.slice(0, RESULTS_PER_PAGE));
+          setFeatureCurrentPage(0);
+          setLastFeatureSearchParams(params);
         } else {
-          const totalResults = response.data.total_count || response.data.data?.length || 0;
-          setFeatureTotalPages(Math.ceil(totalResults / RESULTS_PER_PAGE));
+          console.error('Feature search failed:', response.error);
+          setAllFeatureResults([]);
+          setFeatureResults([]);
+          setFeatureTotalPages(0);
         }
-
-        setLastFeatureSearchParams(params);
       } else {
-        console.error('Feature search failed:', response.error);
-        setFeatureResults([]);
-        setFeatureTotalPages(0);
+        const start = page * RESULTS_PER_PAGE;
+        setFeatureResults(allFeatureResults.slice(start, start + RESULTS_PER_PAGE));
+        setFeatureCurrentPage(page);
       }
     } catch (error) {
       console.error('Feature search error:', error);
+      setAllFeatureResults([]);
       setFeatureResults([]);
       setFeatureTotalPages(0);
     } finally {
@@ -158,7 +178,10 @@ function Search({ setAppProcessing }: SearchProps) {
 
   const handleFeaturePageChange = (page: number) => {
     if (lastFeatureSearchParams) {
-      handleFeatureSearch(lastFeatureSearchParams, page);
+      const start = page * RESULTS_PER_PAGE;
+      setFeatureResults(allFeatureResults.slice(start, start + RESULTS_PER_PAGE));
+      setFeatureCurrentPage(page);
+      document.querySelector('.main-content')?.scrollTo(0, 0);
     }
   };
 
@@ -199,23 +222,19 @@ function Search({ setAppProcessing }: SearchProps) {
 
       if (response.success && response.data) {
         const dataArray = Array.isArray(response.data.data) ? response.data.data : [];
-        setSearchResults(dataArray);
+        setAllSearchResults(dataArray);
+        setSearchResults(dataArray.slice(0, RESULTS_PER_PAGE));
         setCurrentPage(0);
-
-        const totalPagesFromApi = response.data.total_pages;
-        if (totalPagesFromApi && totalPagesFromApi > 0) {
-          setTotalPages(totalPagesFromApi);
-        } else {
-          const totalResults = response.data.total_count || dataArray.length || 0;
-          setTotalPages(Math.ceil(totalResults / RESULTS_PER_PAGE));
-        }
+        setTotalPages(Math.ceil(dataArray.length / RESULTS_PER_PAGE));
       } else {
         console.error('File search failed:', response.error);
+        setAllSearchResults([]);
         setSearchResults([]);
         setTotalPages(0);
       }
     } catch (error) {
       console.error('File search error:', error);
+      setAllSearchResults([]);
       setSearchResults([]);
       setTotalPages(0);
     } finally {
