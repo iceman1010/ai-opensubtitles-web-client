@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Routes, Route, NavLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import Login from './components/Login';
@@ -90,13 +91,15 @@ function AppContent({
     login,
     autoLogin,
     updateCredits,
+    logout,
     updateConfig,
   } = useAPI();
 
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [currentTask, setCurrentTask] = useState<string | undefined>(undefined);
   const [isApiActive, setIsApiActive] = useState(false);
 
@@ -188,6 +191,12 @@ function AppContent({
                   <i className="fas fa-coins"></i>
                   <span>Credits</span>
                 </NavLink>
+              </li>
+              <li className="sidebar-logout-separator">
+                <button onClick={() => setShowLogoutModal(true)} className="sidebar-logout-btn">
+                  <i className="fas fa-sign-out-alt"></i>
+                  <span>Logout</span>
+                </button>
               </li>
             </ul>
           </nav>
@@ -377,6 +386,24 @@ function AppContent({
           <span>Ready</span>
         )}
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && ReactDOM.createPortal(
+        <div className="logout-modal-overlay" onClick={() => setShowLogoutModal(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowLogoutModal(false); }}>
+          <div className="logout-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Confirm Logout</h3>
+            <p>Are you sure you want to log out?</p>
+            <div className="logout-modal-actions">
+              <button className="btn-secondary" onClick={() => setShowLogoutModal(false)}>Cancel</button>
+              <button className="btn-primary" onClick={() => { setShowLogoutModal(false); logout(); navigate('/login'); }}>
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
