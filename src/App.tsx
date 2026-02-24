@@ -16,6 +16,22 @@ import { activityTracker } from './utils/activityTracker';
 import { logger } from './utils/errorLogger';
 import appConfig from './config/appConfig.json';
 
+// Auto-detect base path from the built script's resolved URL.
+// In production at /ai-web/, the script resolves to /ai-web/assets/index-xxx.js → basename "/ai-web".
+// In dev or root deployment, falls back to "".
+function getBasePath(): string {
+  const script = document.querySelector('script[src*="assets/"]') as HTMLScriptElement | null;
+  if (script) {
+    try {
+      const url = new URL(script.src);
+      return url.pathname.replace(/\/assets\/.*$/, '') || '';
+    } catch { /* fall through */ }
+  }
+  return '';
+}
+
+const basePath = getBasePath();
+
 // Scroll to top on route change
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -61,7 +77,7 @@ function App() {
 
   return (
     <HelmetProvider>
-      <Router>
+      <Router basename={basePath}>
         <APIProvider>
           <AppContent
             config={config}
