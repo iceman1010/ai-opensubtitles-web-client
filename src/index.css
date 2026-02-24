@@ -134,6 +134,7 @@ body {
   margin: 2px 8px;
 }
 
+.sidebar nav ul li a,
 .sidebar nav ul li button {
   width: 100%;
   display: flex;
@@ -143,6 +144,7 @@ body {
   background: transparent;
   border: none;
   color: var(--sidebar-text);
+  text-decoration: none;
   cursor: pointer;
   border-radius: 6px;
   font-size: 13px;
@@ -151,15 +153,18 @@ body {
   transition: all 0.2s ease;
 }
 
+.sidebar nav ul li a:hover,
 .sidebar nav ul li button:hover {
   background-color: var(--sidebar-hover);
 }
 
+.sidebar nav ul li a.active,
 .sidebar nav ul li button.active {
   background-color: var(--sidebar-active);
   font-weight: 600;
 }
 
+.sidebar nav ul li a i,
 .sidebar nav ul li button i {
   width: 20px;
   text-align: center;
@@ -167,6 +172,7 @@ body {
   transition: transform 0.2s ease;
 }
 
+.sidebar nav ul li a:hover i,
 .sidebar nav ul li button:hover i {
   transform: scale(1.3);
 }
@@ -358,11 +364,14 @@ button {
   .sidebar h2 {
     display: none;
   }
+  .sidebar nav ul li a,
   .sidebar nav ul li button {
     justify-content: center;
     padding: 12px;
   }
+  .sidebar nav ul li a span,
   .sidebar nav ul li button span,
+  .sidebar nav ul li a:not(:has(i)),
   .sidebar nav ul li button:not(:has(i)) {
     display: none;
   }
@@ -499,13 +508,6 @@ button {
 .credits-screen {
   max-width: 600px;
   margin: 0 auto;
-}
-
-/* Sidebar logout separator */
-.sidebar-logout-separator {
-  margin-top: 6px !important;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 /* Logout confirmation modal */

@@ -192,8 +192,8 @@ function AppContent({
                   <span>Credits</span>
                 </NavLink>
               </li>
-              <li className="sidebar-logout-separator">
-                <button onClick={() => setShowLogoutModal(true)} className="sidebar-logout-btn">
+              <li>
+                <button onClick={() => setShowLogoutModal(true)}>
                   <i className="fas fa-sign-out-alt"></i>
                   <span>Logout</span>
                 </button>
