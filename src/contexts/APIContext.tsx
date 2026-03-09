@@ -25,7 +25,7 @@ interface APIContextType {
   error: string | null;
 
   // Auth
-  login: (username: string, password: string, apiKey: string) => Promise<boolean>;
+  login: (username: string, password: string, apiKey: string, rememberMe?: boolean) => Promise<boolean>;
   logout: () => void;
   autoLogin: () => Promise<boolean>;
   refreshCredits: () => Promise<void>;
@@ -184,9 +184,14 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // ── Public login (saves credentials to storage) ──
-  const login = useCallback(async (user: string, pass: string, apiKey: string): Promise<boolean> => {
-    storageService.saveConfig({ username: user, password: pass, apiKey });
+  // ── Public login (conditionally saves credentials based on rememberMe) ──
+  const login = useCallback(async (user: string, pass: string, apiKey: string, rememberMe: boolean = false): Promise<boolean> => {
+    if (rememberMe) {
+      storageService.saveConfig({ username: user, password: pass, apiKey });
+    } else {
+      storageService.clearCredentials();
+      storageService.saveConfig({ apiKey });
+    }
     setConfig(storageService.getConfig());
     return performLogin(user, pass, apiKey, false);
   }, []);
@@ -211,6 +216,8 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     apiRef.current.clearCachedToken();
     apiRef.current.clearCache();
+    storageService.clearCredentials();
+    storageService.setRememberMe(false);
     setIsAuthenticated(false);
     setCredits(null);
     setTranscriptionInfo(null);

@@ -141,10 +141,10 @@ function AppContent({
     setCurrentTask(processing ? task : undefined);
   };
 
-  const handleLogin = async (username: string, password: string, apiKey: string): Promise<boolean> => {
+  const handleLogin = async (username: string, password: string, apiKey: string, rememberMe: boolean = false): Promise<boolean> => {
     try {
       setAppProcessing(true, 'Validating credentials...');
-      const success = await login(username, password, apiKey);
+      const success = await login(username, password, apiKey, rememberMe);
       if (success) {
         setConfig(storageService.getConfig());
         navigate('/'); // Navigate to main screen on success

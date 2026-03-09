@@ -34,7 +34,7 @@ const isAudioVideoFile = (fileName: string): boolean => {
 
 interface MainScreenProps {
   config: {
-    username: string;
+    username?: string;
     debugMode?: boolean;
     debugLevel?: number;
     audio_language_detection_time?: number;

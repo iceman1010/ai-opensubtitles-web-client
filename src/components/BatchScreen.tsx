@@ -65,7 +65,7 @@ interface BatchSettings {
 
 interface BatchScreenProps {
   config: {
-    username: string;
+    username?: string;
     debugMode?: boolean;
     debugLevel?: number;
     audio_language_detection_time?: number;

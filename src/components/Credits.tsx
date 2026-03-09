@@ -3,7 +3,7 @@ import { CreditPackage } from '../services/api';
 import { useAPI } from '../contexts/APIContext';
 
 interface CreditsProps {
-  config: { username: string };
+  config: { username?: string };
   setAppProcessing: (processing: boolean, task?: string) => void;
   isVisible?: boolean;
 }

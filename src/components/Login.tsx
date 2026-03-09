@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { storageService } from '../services/storageService';
 
 interface LoginProps {
-  onLogin: (username: string, password: string, apiKey: string) => Promise<boolean>;
+  onLogin: (username: string, password: string, apiKey: string, rememberMe: boolean) => Promise<boolean>;
   setAppProcessing: (processing: boolean, task?: string) => void;
   loginError?: string | null;
 }
@@ -10,6 +11,7 @@ function Login({ onLogin, setAppProcessing, loginError }: LoginProps) {
   const [username, setUsername] = useState(() => localStorage.getItem('lastUsername') || '');
   const [password, setPassword] = useState('');
   const [apiKey] = useState('YzhaGkIg6dMSJ47QoihkhikfRmvbJTn7');
+  const [rememberMe, setRememberMe] = useState(() => storageService.getRememberMe());
   const [isLoading, setIsLoading] = useState(false);
   const [localError, setLocalError] = useState('');
   const [loginAttempted, setLoginAttempted] = useState(false);
@@ -26,7 +28,8 @@ function Login({ onLogin, setAppProcessing, loginError }: LoginProps) {
     setLocalError('');
     setAppProcessing(true, 'Logging in...');
     try {
-      const success = await onLogin(username, password, apiKey);
+      storageService.setRememberMe(rememberMe);
+      const success = await onLogin(username, password, apiKey, rememberMe);
       if (success) {
         localStorage.setItem('lastUsername', username);
       } else {
@@ -103,6 +106,20 @@ function Login({ onLogin, setAppProcessing, loginError }: LoginProps) {
             <i className="fas fa-lock" style={{ marginRight: '4px' }}></i>
             Pre-configured API key
           </div>
+        </div>
+
+        <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input
+            type="checkbox"
+            id="rememberMe"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            disabled={isLoading}
+            style={{ width: 'auto', margin: 0 }}
+          />
+          <label htmlFor="rememberMe" style={{ margin: 0, cursor: 'pointer', userSelect: 'none' }}>
+            Keep me signed in
+          </label>
         </div>
 
         <button
