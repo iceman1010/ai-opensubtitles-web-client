@@ -1,6 +1,6 @@
 export interface AppConfig {
-  username: string;
-  password: string;
+  username?: string;
+  password?: string;
   apiKey?: string;
   lastUsedLanguage?: string;
   debugMode?: boolean;
@@ -22,6 +22,7 @@ export interface AppConfig {
 const CONFIG_KEY = 'ai_opensubtitles_config';
 const TOKEN_KEY = 'ai_opensubtitles_token';
 const TOKEN_EXPIRY_KEY = 'ai_opensubtitles_token_expiry';
+const REMEMBER_ME_KEY = 'ai_opensubtitles_remember_me';
 const TOKEN_VALIDITY_HOURS = 6;
 
 class StorageService {
@@ -82,6 +83,25 @@ class StorageService {
   clearToken(): void {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(TOKEN_EXPIRY_KEY);
+  }
+
+  clearCredentials(): void {
+    try {
+      const current = this.getConfig();
+      delete current.username;
+      delete current.password;
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(current));
+    } catch {
+      // ignore
+    }
+  }
+
+  getRememberMe(): boolean {
+    return localStorage.getItem(REMEMBER_ME_KEY) === 'true';
+  }
+
+  setRememberMe(value: boolean): void {
+    localStorage.setItem(REMEMBER_ME_KEY, String(value));
   }
 
   getSessionId(): string {
