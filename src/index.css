@@ -327,13 +327,14 @@ button {
 
 /* Logo glow animation */
 @keyframes logoGlow {
-  0% { box-shadow: 0 0 5px rgba(74, 144, 226, 0.3); }
-  50% { box-shadow: 0 0 15px rgba(74, 144, 226, 0.6); }
-  100% { box-shadow: 0 0 5px rgba(74, 144, 226, 0.3); }
+  0% { box-shadow: 0 0 20px rgba(74, 144, 226, 0.3); }
+  50% { box-shadow: 0 0 35px rgba(74, 144, 226, 0.7); }
+  100% { box-shadow: 0 0 20px rgba(74, 144, 226, 0.3); }
 }
 
 .sidebar-logo-glow {
   animation: logoGlow 2s ease-in-out infinite;
+  transition: box-shadow 0.3s ease;
 }
 
 /* Scrollbar styling */
