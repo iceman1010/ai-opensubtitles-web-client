@@ -10,6 +10,8 @@ export interface AppConfig {
   apiUrlParameter?: string;
   autoLanguageDetection?: boolean;
   darkMode?: boolean;
+  pollingIntervalSeconds?: number;
+  pollingTimeoutSeconds?: number;
   hideRecentMediaInfoPanel?: boolean;
   defaultFilenameFormat?: string;
   audio_language_detection_time?: number;

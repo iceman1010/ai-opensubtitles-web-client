@@ -8,6 +8,8 @@ import MainScreen from './components/MainScreen';
 import BatchScreen from './components/BatchScreen';
 import RecentMedia from './components/RecentMedia';
 import Search from './components/Search';
+import Info from './components/Info';
+import Preferences from './components/Preferences';
 import SEO from './components/SEO';
 import ProtectedRoute from './components/ProtectedRoute';
 import { APIProvider, useAPI } from './contexts/APIContext';
@@ -203,9 +205,21 @@ function AppContent({
                 </NavLink>
               </li>
               <li>
+                <NavLink to="/info" className={({ isActive }) => isActive ? 'active' : ''}>
+                  <i className="fas fa-info-circle"></i>
+                  <span>Info</span>
+                </NavLink>
+              </li>
+              <li>
                 <NavLink to="/credits" className={({ isActive }) => isActive ? 'active' : ''}>
                   <i className="fas fa-coins"></i>
                   <span>Credits</span>
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/preferences" className={({ isActive }) => isActive ? 'active' : ''}>
+                  <i className="fas fa-cog"></i>
+                  <span>Preferences</span>
                 </NavLink>
               </li>
               <li>
@@ -277,7 +291,7 @@ function AppContent({
 
           {/* Version */}
           <div className="sidebar-version" style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)' }}>
-            Web v1.0.0
+            Web v1.0.1
           </div>
         </div>
       )}
@@ -342,6 +356,13 @@ function AppContent({
             </ProtectedRoute>
           } />
 
+          <Route path="/info" element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <SEO title="Info" description="AI model information and pricing details." />
+              <Info setAppProcessing={setAppProcessing} />
+            </ProtectedRoute>
+          } />
+
           <Route path="/credits" element={
             <ProtectedRoute isAuthenticated={isAuthenticated}>
               <SEO title="Credits" description="Manage your AI OpenSubtitles credits." />
@@ -355,6 +376,13 @@ function AppContent({
             </ProtectedRoute>
           } />
           
+          <Route path="/preferences" element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <SEO title="Preferences" description="Configure application settings." />
+              <Preferences setAppProcessing={setAppProcessing} />
+            </ProtectedRoute>
+          } />
+
           {/* Fallback route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
