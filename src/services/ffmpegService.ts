@@ -164,14 +164,14 @@ export class BrowserFFmpegService {
   async getMediaInfo(file: File): Promise<MediaInfo> {
     await this.initialize();
 
-    // For media info, we only need a small portion of the file
-    // Read first 10MB max to detect format/streams
+    // For media info, we only need a small portion of the file.
+    // Read first 10MB max to detect format/streams.
     const maxProbeSize = 10 * 1024 * 1024;
     const probeSlice = file.slice(0, Math.min(file.size, maxProbeSize));
     const fileData = new Uint8Array(await probeSlice.arrayBuffer());
     const inputName = file.name;
 
-    return new Promise((resolve, reject) => {
+    const result = await new Promise<MediaInfo>((resolve, reject) => {
       const handler = (e: MessageEvent) => {
         switch (e.data.type) {
           case 'mediaInfo':
@@ -191,6 +191,29 @@ export class BrowserFFmpegService {
         [fileData.buffer]
       );
     });
+
+    // MP4 and some other containers store metadata (moov atom) at the end
+    // of the file. When we only probe the first 10MB, ffmpeg may not find
+    // any streams. In that case, infer from the file extension so we don't
+    // incorrectly reject a valid file.
+    if (!result.hasAudio && !result.hasVideo) {
+      const ext = file.name.toLowerCase().split('.').pop();
+      const videoExts = ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'm4v', 'mpg', 'mpeg', '3gp', 'ts', 'mts', 'm2ts', 'vob', 'mxf', 'asf'];
+      const audioExts = ['mp3', 'wav', 'flac', 'aac', 'ogg', 'wma', 'm4a', 'opus', 'ac3', 'dts', 'aiff'];
+
+      if (ext && videoExts.includes(ext)) {
+        logger.warn('FFmpeg', `Probe did not detect streams in ${file.name} (likely moov atom at end of file). Assuming video+audio based on extension.`);
+        result.hasVideo = true;
+        result.hasAudio = true;
+        result.format = result.format || ext;
+      } else if (ext && audioExts.includes(ext)) {
+        logger.warn('FFmpeg', `Probe did not detect streams in ${file.name}. Assuming audio based on extension.`);
+        result.hasAudio = true;
+        result.format = result.format || ext;
+      }
+    }
+
+    return result;
   }
 
   /**
