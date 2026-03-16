@@ -10,6 +10,7 @@ import RecentMedia from './components/RecentMedia';
 import Search from './components/Search';
 import Info from './components/Info';
 import Preferences from './components/Preferences';
+import Help from './components/Help';
 import SEO from './components/SEO';
 import ProtectedRoute from './components/ProtectedRoute';
 import { APIProvider, useAPI } from './contexts/APIContext';
@@ -223,6 +224,12 @@ function AppContent({
                 </NavLink>
               </li>
               <li>
+                <NavLink to="/help" className={({ isActive }) => isActive ? 'active' : ''}>
+                  <i className="fas fa-question-circle"></i>
+                  <span>Help</span>
+                </NavLink>
+              </li>
+              <li>
                 <button onClick={() => setShowLogoutModal(true)}>
                   <i className="fas fa-sign-out-alt"></i>
                   <span>Logout</span>
@@ -380,6 +387,13 @@ function AppContent({
             <ProtectedRoute isAuthenticated={isAuthenticated}>
               <SEO title="Preferences" description="Configure application settings." />
               <Preferences setAppProcessing={setAppProcessing} />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/help" element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <SEO title="Help" description="Help and documentation for using AI OpenSubtitles." />
+              <Help />
             </ProtectedRoute>
           } />
 

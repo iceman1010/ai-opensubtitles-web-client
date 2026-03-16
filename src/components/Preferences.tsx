@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useAPI } from '../contexts/APIContext';
 import CacheManager from '../services/cache';
 
+const DEFAULT_FILENAME_FORMAT = '{filename}.{language_code}.{type}.{extension}';
+
 interface PreferencesProps {
   setAppProcessing: (processing: boolean, task?: string) => void;
 }
@@ -160,6 +162,129 @@ function Preferences({ setAppProcessing }: PreferencesProps) {
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
             <span>60s</span>
             <span>300s</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filename Format */}
+      <div style={sectionStyle}>
+        <div style={sectionTitleStyle}>
+          <i className="fas fa-file-signature" style={{ marginRight: '8px' }}></i>
+          Output Filename Format
+        </div>
+        <div style={{ padding: '10px 0' }}>
+          <div>
+            <div style={labelStyle}>Default Filename Format</div>
+            <div style={sublabelStyle}>
+              Pattern for naming output files. Available placeholders: <code style={{ fontSize: '11px', padding: '1px 4px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '3px' }}>{'{filename}'}</code>, <code style={{ fontSize: '11px', padding: '1px 4px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '3px' }}>{'{language_code}'}</code>, <code style={{ fontSize: '11px', padding: '1px 4px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '3px' }}>{'{language_name}'}</code>, <code style={{ fontSize: '11px', padding: '1px 4px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '3px' }}>{'{type}'}</code>, <code style={{ fontSize: '11px', padding: '1px 4px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '3px' }}>{'{format}'}</code>, <code style={{ fontSize: '11px', padding: '1px 4px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '3px' }}>{'{timestamp}'}</code>
+            </div>
+          </div>
+
+          <input
+            type="text"
+            id="default-filename-format"
+            value={config?.defaultFilenameFormat || DEFAULT_FILENAME_FORMAT}
+            onChange={(e) => updateConfig({ defaultFilenameFormat: e.target.value })}
+            placeholder={DEFAULT_FILENAME_FORMAT}
+            style={{
+              width: '100%',
+              marginTop: '10px',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: '1px solid var(--border-color)',
+              backgroundColor: 'var(--bg-primary)',
+              color: 'var(--text-primary)',
+              fontSize: '13px',
+              fontFamily: 'monospace',
+              boxSizing: 'border-box',
+            }}
+          />
+
+          {/* Placeholder Buttons */}
+          <div style={{ marginTop: '10px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {[
+              { placeholder: '{filename}', label: 'Filename' },
+              { placeholder: '{language_code}', label: 'Lang Code' },
+              { placeholder: '{language_name}', label: 'Lang Name' },
+              { placeholder: '{type}', label: 'Type' },
+              { placeholder: '{format}', label: 'Format' },
+              { placeholder: '{timestamp}', label: 'Timestamp' },
+            ].map(({ placeholder, label }) => (
+              <button
+                key={placeholder}
+                type="button"
+                onClick={() => {
+                  const input = document.getElementById('default-filename-format') as HTMLInputElement;
+                  if (input) {
+                    const start = input.selectionStart || 0;
+                    const end = input.selectionEnd || 0;
+                    const current = config?.defaultFilenameFormat || DEFAULT_FILENAME_FORMAT;
+                    const newValue = current.slice(0, start) + placeholder + current.slice(end);
+                    updateConfig({ defaultFilenameFormat: newValue });
+                    setTimeout(() => {
+                      input.focus();
+                      input.setSelectionRange(start + placeholder.length, start + placeholder.length);
+                    }, 0);
+                  }
+                }}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '11px',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '4px',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--button-bg)';
+                  e.currentTarget.style.color = 'var(--button-text)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Live Preview */}
+          <div style={{
+            marginTop: '10px',
+            padding: '8px 12px',
+            backgroundColor: 'var(--bg-tertiary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '4px',
+            fontSize: '12px',
+          }}>
+            <div style={{ color: 'var(--text-secondary)', marginBottom: '4px', fontSize: '11px' }}>
+              Preview:
+            </div>
+            <div style={{ fontFamily: 'monospace', color: 'var(--text-primary)', fontWeight: '500' }}>
+              {(() => {
+                const sampleData: Record<string, string> = {
+                  filename: 'movie',
+                  language_code: 'en',
+                  language_name: 'English',
+                  type: 'transcription',
+                  format: 'srt',
+                  extension: 'srt',
+                  timestamp: '2025-09-30T14-30-15',
+                };
+                let preview = config?.defaultFilenameFormat || DEFAULT_FILENAME_FORMAT;
+                Object.entries(sampleData).forEach(([key, value]) => {
+                  preview = preview.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
+                });
+                return preview || 'Enter a format above';
+              })()}
+            </div>
+          </div>
+
+          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '6px', fontStyle: 'italic' }}>
+            Default: {'{filename}.{language_code}.{type}.{extension}'} — Use dots as separators
           </div>
         </div>
       </div>
