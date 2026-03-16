@@ -505,11 +505,6 @@ button {
   color: var(--text-primary);
 }
 
-/* Credits screen */
-.credits-screen {
-  max-width: 600px;
-  margin: 0 auto;
-}
 
 /* Logout confirmation modal */
 .logout-modal-overlay {
