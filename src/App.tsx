@@ -299,7 +299,7 @@ function AppContent({
 
           {/* Version */}
           <div className="sidebar-version" style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)' }}>
-            Web v1.0.1
+            Web v1.0.2
           </div>
         </div>
       )}
