@@ -121,6 +121,7 @@ function AppContent({
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [currentTask, setCurrentTask] = useState<string | undefined>(undefined);
   const [isApiActive, setIsApiActive] = useState(false);
+  const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
 
   // Auto-login on mount
   useEffect(() => {
@@ -322,6 +323,7 @@ function AppContent({
                   onNavigateToCredits={() => navigate('/credits')}
                   onCreditsUpdate={handleCreditsUpdate}
                   onProcessingStateChange={(p) => setIsProcessing(p)}
+                  onEstimatedCostChange={setEstimatedCost}
                 />
               )}
             </ProtectedRoute>
@@ -335,6 +337,7 @@ function AppContent({
                   config={config}
                   setAppProcessing={setAppProcessing}
                   onProcessingStateChange={(p) => setIsProcessing(p)}
+                  onEstimatedCostChange={setEstimatedCost}
                 />
               )}
             </ProtectedRoute>
@@ -433,6 +436,16 @@ function AppContent({
         >
           <i className="fas fa-coins" style={{ color: 'var(--text-primary)', marginRight: '6px' }}></i>
           Credits: <strong>{credits.remaining}</strong>
+          {estimatedCost !== null && (
+            <div style={{
+              fontSize: '12px',
+              color: estimatedCost === 0 ? 'var(--success-color)' : estimatedCost > credits.remaining ? 'var(--danger-color)' : 'var(--text-muted)',
+              marginTop: '4px',
+              fontWeight: estimatedCost > credits.remaining ? '600' : '400'
+            }}>
+              Est. cost: {estimatedCost === 0 ? 'Free' : `~${estimatedCost.toFixed(1)}`}
+            </div>
+          )}
         </div>
       )}
 
