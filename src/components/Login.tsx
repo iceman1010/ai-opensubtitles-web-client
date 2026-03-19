@@ -10,7 +10,7 @@ interface LoginProps {
 function Login({ onLogin, setAppProcessing, loginError }: LoginProps) {
   const [username, setUsername] = useState(() => localStorage.getItem('lastUsername') || '');
   const [password, setPassword] = useState('');
-  const [apiKey] = useState('YzhaGkIg6dMSJ47QoihkhikfRmvbJTn7');
+  const [apiKey] = useState('5MGRBWO9lHA023KPmVMaa0PoRYHqQKpK');
   const [rememberMe, setRememberMe] = useState(() => storageService.getRememberMe());
   const [isLoading, setIsLoading] = useState(false);
   const [localError, setLocalError] = useState('');
