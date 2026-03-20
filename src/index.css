@@ -337,6 +337,31 @@ button {
   transition: box-shadow 0.3s ease;
 }
 
+/* Status bar animations */
+@keyframes pulse-rotate {
+  0% { opacity: 0.6; transform: rotate(0deg) scale(0.9); }
+  50% { opacity: 1; transform: rotate(180deg) scale(1.1); }
+  100% { opacity: 0.6; transform: rotate(360deg) scale(0.9); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.status-pulsing {
+  animation: pulse-rotate 1.5s ease-in-out infinite;
+}
+
+.status-pulse {
+  animation: pulse 2s ease-in-out;
+}
+
+.status-separator {
+  margin: 0 8px;
+  color: var(--text-muted);
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;

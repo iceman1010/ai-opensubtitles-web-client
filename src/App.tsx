@@ -16,6 +16,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { APIProvider, useAPI } from './contexts/APIContext';
 import { storageService, AppConfig } from './services/storageService';
 import { activityTracker } from './utils/activityTracker';
+import { setupNetworkListeners, isOnline } from './utils/networkUtils';
 import { logger } from './utils/errorLogger';
 import appConfig from './config/appConfig.json';
 
@@ -34,6 +35,21 @@ function getBasePath(): string {
 }
 
 const basePath = getBasePath();
+
+function getEndpointDisplay(context: string): string {
+  if (!context) return 'API';
+  const lowercased = context.toLowerCase();
+  if (lowercased.includes('transcription') || lowercased.includes('transcribe')) return 'transcription';
+  if (lowercased.includes('translation') || lowercased.includes('translate')) return 'translation';
+  if (lowercased.includes('login') || lowercased.includes('auth')) return 'login';
+  if (lowercased.includes('credits')) return 'credits';
+  if (lowercased.includes('language') || lowercased.includes('detect')) return 'language';
+  if (lowercased.includes('services') || lowercased.includes('info')) return 'info';
+  if (lowercased.includes('packages') || lowercased.includes('credit')) return 'packages';
+  if (lowercased.includes('download')) return 'download';
+  const words = context.toLowerCase().split(/[\s\-_/]+/).filter(w => w.length > 2);
+  return words.length > 0 ? words[words.length - 1] : 'API';
+}
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -121,6 +137,10 @@ function AppContent({
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [currentTask, setCurrentTask] = useState<string | undefined>(undefined);
   const [isApiActive, setIsApiActive] = useState(false);
+  const [currentApiContext, setCurrentApiContext] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const [showConnectionChange, setShowConnectionChange] = useState(false);
+  const [notification, setNotification] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
 
   // Auto-login on mount
@@ -130,13 +150,38 @@ function AppContent({
     }
   }, [hasCredentials, autoLogin]);
 
-  // Track API activity for logo glow
+  // Track API activity for logo glow and status bar
   useEffect(() => {
     const cleanup = activityTracker.addListener({
-      onActivityStart: () => setIsApiActive(true),
-      onActivityEnd: () => setIsApiActive(false)
+      onActivityStart: (context) => {
+        setIsApiActive(true);
+        setCurrentApiContext(context || null);
+      },
+      onActivityEnd: () => {
+        setIsApiActive(false);
+        setCurrentApiContext(null);
+      },
+      onContextUpdate: (contexts) => {
+        setCurrentApiContext(contexts.length > 0 ? contexts[contexts.length - 1] : null);
+      }
     });
     if (activityTracker.isActive()) setIsApiActive(true);
+    return cleanup;
+  }, []);
+
+  // Track network online/offline status
+  useEffect(() => {
+    const cleanup = setupNetworkListeners(
+      () => {
+        setIsOnline(true);
+        setShowConnectionChange(true);
+        setTimeout(() => setShowConnectionChange(false), 5000);
+      },
+      () => {
+        setIsOnline(false);
+        setShowConnectionChange(true);
+      }
+    );
     return cleanup;
   }, []);
 
@@ -299,7 +344,7 @@ function AppContent({
 
           {/* Version */}
           <div className="sidebar-version" style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)' }}>
-            Web v1.0.2
+            Web v1.0.3
           </div>
         </div>
       )}
@@ -451,10 +496,58 @@ function AppContent({
 
       {/* Status Bar */}
       <div className="status-bar">
-        {isProcessing && currentTask ? (
-          <span><i className="fas fa-spinner fa-spin" style={{ marginRight: '6px' }}></i>{currentTask}</span>
-        ) : (
-          <span>Ready</span>
+        {/* Network Status */}
+        <span style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          color: isOnline ? 'var(--success-color)' : 'var(--danger-color)',
+          fontWeight: !isOnline ? 600 : 500
+        }}>
+          <i className={isOnline ? 'fas fa-circle' : 'fas fa-exclamation-triangle'} style={{ fontSize: '8px' }}></i>
+          {showConnectionChange ? (isOnline ? 'Connected' : 'Offline') : (isOnline ? 'Online' : 'Offline')}
+        </span>
+
+        {/* API Activity Indicator */}
+        {isApiActive && (
+          <>
+            <span className="status-separator">|</span>
+            <span style={{ color: '#6f42c1', fontWeight: 500 }}>
+              <i className="fas fa-sync-alt status-pulsing" style={{ marginRight: '4px' }}></i>
+              {currentApiContext ? getEndpointDisplay(currentApiContext) : 'API'}
+            </span>
+          </>
+        )}
+
+        {/* Processing Status */}
+        {(isProcessing && currentTask) && (
+          <>
+            <span className="status-separator">|</span>
+            <span style={{
+              color: currentTask.toLowerCase().includes('error') || currentTask.toLowerCase().includes('failed')
+                ? 'var(--danger-color)' : 'var(--accent-color)',
+              fontWeight: 600
+            }}>
+              <i className={`fas ${currentTask.toLowerCase().includes('error') || currentTask.toLowerCase().includes('failed') ? 'fa-times' : 'fa-spinner fa-spin'}`} style={{ marginRight: '4px' }}></i>
+              {currentTask}
+            </span>
+          </>
+        )}
+
+        {/* Notification */}
+        {notification.visible && (
+          <>
+            <span className="status-separator">|</span>
+            <span style={{ color: '#fd7e14', fontWeight: 500 }}>
+              <i className="fas fa-info-circle" style={{ marginRight: '4px' }}></i>
+              {notification.message}
+            </span>
+          </>
+        )}
+
+        {/* Default when nothing is happening */}
+        {!isApiActive && !isProcessing && !notification.visible && !isOnline && (
+          <span style={{ color: 'var(--danger-color)' }}>Disconnected</span>
         )}
       </div>
 
