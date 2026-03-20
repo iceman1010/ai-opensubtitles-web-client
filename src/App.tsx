@@ -142,7 +142,11 @@ function AppContent({
   const [isOnline, setIsOnline] = useState(true);
   const [showConnectionChange, setShowConnectionChange] = useState(false);
   const [notification, setNotification] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
+  const [displayedNotification, setDisplayedNotification] = useState<string>('');
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
+  const [displayedTask, setDisplayedTask] = useState<string | undefined>(undefined);
+  const [lastTaskUpdate, setLastTaskUpdate] = useState<number>(Date.now());
+  const [lastNotificationUpdate, setLastNotificationUpdate] = useState<number>(Date.now());
 
   // Auto-login on mount
   useEffect(() => {
@@ -185,6 +189,50 @@ function AppContent({
     );
     return cleanup;
   }, []);
+
+  // Handle minimum display time for processing status
+  useEffect(() => {
+    const MIN_DISPLAY_TIME = 1500;
+
+    if (isProcessing && currentTask) {
+      setDisplayedTask(currentTask);
+      setLastTaskUpdate(Date.now());
+    } else if (!isProcessing && displayedTask) {
+      const elapsed = Date.now() - lastTaskUpdate;
+      const remaining = Math.max(0, MIN_DISPLAY_TIME - elapsed);
+
+      if (remaining > 0) {
+        const timeoutId = setTimeout(() => {
+          setDisplayedTask(undefined);
+        }, remaining);
+        return () => clearTimeout(timeoutId);
+      } else {
+        setDisplayedTask(undefined);
+      }
+    }
+  }, [isProcessing, currentTask, displayedTask, lastTaskUpdate]);
+
+  // Handle minimum display time for notifications
+  useEffect(() => {
+    const MIN_DISPLAY_TIME = 2000;
+
+    if (notification.visible && notification.message) {
+      setDisplayedNotification(notification.message);
+      setLastNotificationUpdate(Date.now());
+    } else if (!notification.visible && displayedNotification) {
+      const elapsed = Date.now() - lastNotificationUpdate;
+      const remaining = Math.max(0, MIN_DISPLAY_TIME - elapsed);
+
+      if (remaining > 0) {
+        const timeoutId = setTimeout(() => {
+          setDisplayedNotification('');
+        }, remaining);
+        return () => clearTimeout(timeoutId);
+      } else {
+        setDisplayedNotification('');
+      }
+    }
+  }, [notification, displayedNotification, lastNotificationUpdate]);
 
   const setAppProcessing = (processing: boolean, task?: string) => {
     setIsProcessing(processing);
@@ -521,33 +569,33 @@ function AppContent({
         )}
 
         {/* Processing Status */}
-        {(isProcessing && currentTask) && (
+        {displayedTask && (
           <>
             <span className="status-separator">|</span>
             <span style={{
-              color: currentTask.toLowerCase().includes('error') || currentTask.toLowerCase().includes('failed')
+              color: displayedTask.toLowerCase().includes('error') || displayedTask.toLowerCase().includes('failed')
                 ? 'var(--danger-color)' : 'var(--accent-color)',
               fontWeight: 600
             }}>
-              <i className={`fas ${currentTask.toLowerCase().includes('error') || currentTask.toLowerCase().includes('failed') ? 'fa-times' : 'fa-spinner fa-spin'}`} style={{ marginRight: '4px' }}></i>
-              {currentTask}
+              <i className={`fas ${displayedTask.toLowerCase().includes('error') || displayedTask.toLowerCase().includes('failed') ? 'fa-times' : 'fa-spinner fa-spin'}`} style={{ marginRight: '4px' }}></i>
+              {displayedTask}
             </span>
           </>
         )}
 
         {/* Notification */}
-        {notification.visible && (
+        {displayedNotification && (
           <>
             <span className="status-separator">|</span>
             <span style={{ color: '#fd7e14', fontWeight: 500 }}>
               <i className="fas fa-info-circle" style={{ marginRight: '4px' }}></i>
-              {notification.message}
+              {displayedNotification}
             </span>
           </>
         )}
 
         {/* Default when nothing is happening */}
-        {!isApiActive && !isProcessing && !notification.visible && !isOnline && (
+        {!isApiActive && !displayedTask && !displayedNotification && !isOnline && (
           <span style={{ color: 'var(--danger-color)' }}>Disconnected</span>
         )}
       </div>
