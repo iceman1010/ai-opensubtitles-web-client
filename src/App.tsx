@@ -19,6 +19,7 @@ import { activityTracker } from './utils/activityTracker';
 import { setupNetworkListeners, isOnline } from './utils/networkUtils';
 import { logger } from './utils/errorLogger';
 import appConfig from './config/appConfig.json';
+import packageJson from '../package.json';
 
 // Auto-detect base path from the built script's resolved URL.
 // In production at /ai-web/, the script resolves to /ai-web/assets/index-xxx.js → basename "/ai-web".
@@ -344,7 +345,7 @@ function AppContent({
 
           {/* Version */}
           <div className="sidebar-version" style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)' }}>
-            Web v1.0.3
+            Web v{packageJson.version}
           </div>
         </div>
       )}
