@@ -213,6 +213,15 @@ export interface RecentMediaItem {
   files?: string[];
 }
 
+export interface RecentActivityItem {
+  id: number;
+  type: number;
+  type_name: string;
+  credits: number;
+  time: number;
+  time_str: string;
+}
+
 // In dev mode, use relative URL so Vite proxy handles CORS
 // In production, we use the dedicated Nginx proxy path to bypass CORS and inject the required User-Agent
 const DEFAULT_BASE_URL = import.meta.env.DEV
@@ -401,7 +410,8 @@ export class OpenSubtitlesAPI {
   async initiateTranscription(audioFile: File | Blob, options: TranscriptionOptions): Promise<APIResponse> {
     try {
       logger.info('API', 'Initiating transcription', { api: options.api, language: options.language });
-      CacheManager.remove('recent_media');
+      CacheManager.removeByPrefix('recent_media');
+      CacheManager.removeByPrefix('recent_activities');
 
       return await apiRequestWithRetry(async () => {
         const formData = new FormData();
@@ -435,7 +445,8 @@ export class OpenSubtitlesAPI {
   async initiateTranslation(subtitleFile: File | Blob, options: TranslationOptions): Promise<APIResponse> {
     try {
       logger.info('API', 'Initiating translation', { api: options.api, translateFrom: options.translateFrom, translateTo: options.translateTo });
-      CacheManager.remove('recent_media');
+      CacheManager.removeByPrefix('recent_media');
+      CacheManager.removeByPrefix('recent_activities');
 
       return await apiRequestWithRetry(async () => {
         const formData = new FormData();
@@ -694,21 +705,41 @@ export class OpenSubtitlesAPI {
     }
   }
 
-  async getRecentMedia(): Promise<{ success: boolean; data?: RecentMediaItem[]; error?: string }> {
-    const cacheKey = 'recent_media';
+  async getRecentMedia(page: number = 1): Promise<{ success: boolean; data?: RecentMediaItem[]; error?: string }> {
+    const cacheKey = `recent_media_page_${page}`;
     const cached = CacheManager.get<RecentMediaItem[]>(cacheKey);
     if (cached) return { success: true, data: cached };
     if (!this.apiKey) return { success: false, error: 'API Key is required' };
 
     try {
       return await apiRequestWithRetry(async () => {
-        const response = await fetch(this.getAIUrl('/recent_media'), { method: 'POST', headers: this.getHeaders(true, 'application/json') });
+        const response = await fetch(this.getAIUrl(`/recent_media?page=${page}`), { method: 'POST', headers: this.getHeaders(true, 'application/json') });
         if (!response.ok) { const e = new Error(`Request failed: ${response.status}`); (e as any).status = response.status; throw e; }
         const responseData = await response.json();
         const data: RecentMediaItem[] = responseData.data || responseData;
         CacheManager.set(cacheKey, data);
         return { success: true, data };
       }, 'Get Recent Media', 3);
+    } catch (error: any) {
+      return { success: false, error: getUserFriendlyErrorMessage(error) };
+    }
+  }
+
+  async getRecentActivities(page: number = 1): Promise<{ success: boolean; data?: RecentActivityItem[]; error?: string }> {
+    const cacheKey = `recent_activities_page_${page}`;
+    const cached = CacheManager.get<RecentActivityItem[]>(cacheKey);
+    if (cached) return { success: true, data: cached };
+    if (!this.apiKey) return { success: false, error: 'API Key is required' };
+
+    try {
+      return await apiRequestWithRetry(async () => {
+        const response = await fetch(this.getAIUrl(`/recent_activities?page=${page}`), { method: 'POST', headers: this.getHeaders(true, 'application/json') });
+        if (!response.ok) { const e = new Error(`Request failed: ${response.status}`); (e as any).status = response.status; throw e; }
+        const responseData = await response.json();
+        const data: RecentActivityItem[] = responseData.data || responseData;
+        CacheManager.set(cacheKey, data);
+        return { success: true, data };
+      }, 'Get Recent Activities', 3);
     } catch (error: any) {
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }

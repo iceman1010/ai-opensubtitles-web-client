@@ -19,10 +19,14 @@ function RecentMedia({ setAppProcessing, isVisible = true }: RecentMediaProps) {
 
   const [recentMedia, setRecentMedia] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [focusedItem, setFocusedItem] = useState<TreeItemIndex>();
   const [expandedItems, setExpandedItems] = useState<TreeItemIndex[]>([]);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMorePages, setHasMorePages] = useState(true);
   const loadingRef = useRef(false);
+  const PAGE_SIZE = 20;
 
   // Race condition protection for downloads
   const isMountedRef = useRef(true);
@@ -32,39 +36,42 @@ function RecentMedia({ setAppProcessing, isVisible = true }: RecentMediaProps) {
   // Get info panel visibility from config (default to true if not set)
   const showInfoPanel = !config?.hideRecentMediaInfoPanel;
 
-  const loadRecentMedia = useCallback(async () => {
-    // Prevent multiple simultaneous calls using ref
-    if (loadingRef.current) {
-      return;
-    }
-
-    if (!isAuthenticated) {
-      return;
-    }
+  const loadRecentMedia = useCallback(async (page: number = 1, append: boolean = false) => {
+    if (loadingRef.current) return;
+    if (!isAuthenticated) return;
 
     loadingRef.current = true;
-    setIsLoading(true);
-    setAppProcessing(true, 'Loading recent media...');
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+      setAppProcessing(true, 'Loading recent media...');
+    }
 
     try {
-      const result = await getRecentMedia();
+      const result = await getRecentMedia(page);
 
       if (result.success && result.data) {
-        setRecentMedia(result.data);
+        if (append) {
+          setRecentMedia(prev => [...prev, ...result.data!]);
+        } else {
+          setRecentMedia(result.data);
+        }
+        setCurrentPage(page);
+        setHasMorePages(result.data.length >= PAGE_SIZE);
         setHasLoadedOnce(true);
-        // Clear status bar on success
         setAppProcessing(false);
       } else {
         throw new Error(result.error || 'Failed to load recent media');
       }
     } catch (error: any) {
       logger.error('RECENT_MEDIA', 'Error loading recent media', error);
-      // Use status bar for error feedback
       setAppProcessing(true, `Failed to load recent media: ${error.message || 'Unknown error'}`);
       setTimeout(() => setAppProcessing(false), 3000);
     } finally {
       loadingRef.current = false;
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [getRecentMedia, isAuthenticated, setAppProcessing]);
 
@@ -226,69 +233,50 @@ function RecentMedia({ setAppProcessing, isVisible = true }: RecentMediaProps) {
   const handleRefresh = () => {
     setHasLoadedOnce(false);
     setRecentMedia([]);
-    loadRecentMedia();
+    setCurrentPage(1);
+    setHasMorePages(true);
+    loadRecentMedia(1, false);
+  };
+
+  const handleLoadMore = () => {
+    loadRecentMedia(currentPage + 1, true);
   };
 
   return (
     <div className="recent-media-screen" style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '20px', position: 'relative' }}>
-      <h1>Recent Media</h1>
-
-      {/* Floating Refresh Button - positioned under credits overlay */}
-      {isAuthenticated && (
-        <button
-          onClick={handleRefresh}
-          disabled={isLoading}
-          style={{
-            position: 'fixed',
-            top: '70px',
-            right: '20px',
-            padding: '8px 12px',
-            backgroundColor: isLoading ? '#ccc' : '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: isLoading ? 'not-allowed' : 'pointer',
-            fontSize: '13px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            zIndex: 999,
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-          }}
-        >
-          {isLoading ? (
-            <>
-              <span style={{
-                display: 'inline-block',
-                width: '12px',
-                height: '12px',
-                border: '2px solid white',
-                borderTop: '2px solid transparent',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }}></span>
-              Loading...
-            </>
-          ) : (
-            <>
-              <i className="fas fa-sync-alt"></i>
-              Refresh
-            </>
-          )}
-        </button>
-      )}
+      <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        Recent Media
+        {isAuthenticated && (
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            title="Refresh"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              padding: '4px',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '4px',
+              transition: 'color 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              if (!isLoading) {
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-secondary)';
+            }}
+          >
+            <i className={`fas fa-sync-alt${isLoading ? ' fa-spin' : ''}`}></i>
+          </button>
+        )}
+      </h1>
 
       {isLoading && recentMedia.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
@@ -652,6 +640,66 @@ function RecentMedia({ setAppProcessing, isVisible = true }: RecentMediaProps) {
           >
             <Tree treeId="recent-media-tree" rootItem="root" treeLabel="Recent Media" />
           </UncontrolledTreeEnvironment>
+
+          {/* Load More Button */}
+          {hasMorePages && recentMedia.length > 0 && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              padding: '16px 8px 8px'
+            }}>
+              <button
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+                style={{
+                  padding: '10px 24px',
+                  backgroundColor: isLoadingMore ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
+                  color: isLoadingMore ? 'var(--text-secondary)' : 'var(--primary-color)',
+                  border: `1px solid ${isLoadingMore ? 'var(--border-color)' : 'var(--primary-color)'}`,
+                  borderRadius: '6px',
+                  cursor: isLoadingMore ? 'not-allowed' : 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLoadingMore) {
+                    e.currentTarget.style.backgroundColor = 'var(--primary-color)';
+                    e.currentTarget.style.color = 'white';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isLoadingMore) {
+                    e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
+                    e.currentTarget.style.color = 'var(--primary-color)';
+                  }
+                }}
+              >
+                {isLoadingMore ? (
+                  <>
+                    <span style={{
+                      display: 'inline-block',
+                      width: '14px',
+                      height: '14px',
+                      border: '2px solid var(--text-secondary)',
+                      borderTop: '2px solid transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }}></span>
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-chevron-down"></i>
+                    Load More
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

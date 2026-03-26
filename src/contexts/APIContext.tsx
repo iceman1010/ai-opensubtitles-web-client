@@ -40,7 +40,8 @@ interface APIContextType {
   getTranscriptionLanguagesForApi: (apiId: string) => Promise<{ success: boolean; data?: LanguageInfo[]; error?: string }>;
   getTranslationLanguagesForApi: (apiId: string) => Promise<{ success: boolean; data?: LanguageInfo[]; error?: string }>;
   getTranslationApisForLanguage: (sourceLanguage: string, targetLanguage: string) => Promise<{ success: boolean; data?: string[]; error?: string }>;
-  getRecentMedia: () => Promise<{ success: boolean; data?: RecentMediaItem[]; error?: string }>;
+  getRecentMedia: (page?: number) => Promise<{ success: boolean; data?: RecentMediaItem[]; error?: string }>;
+  getRecentActivities: (page?: number) => Promise<{ success: boolean; data?: any; error?: string }>;
   detectLanguage: (file: File | Blob, duration?: number) => Promise<APIResponse<LanguageDetectionResult>>;
   checkLanguageDetectionStatus: (correlationId: string) => Promise<APIResponse<LanguageDetectionResult>>;
   initiateTranscription: (audioFile: File | Blob, options: TranscriptionOptions) => Promise<APIResponse>;
@@ -304,9 +305,14 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
     return withAuthRetry(() => apiRef.current.getTranslationApisForLanguage(sourceLanguage, targetLanguage), 'Get Translation APIs');
   }, [isAuthenticated, isAuthenticating, withAuthRetry]);
 
-  const getRecentMedia = useCallback(async () => {
+  const getRecentMedia = useCallback(async (page: number = 1) => {
     if (!isAuthenticated && !isAuthenticating) return { success: false, error: 'Not authenticated' };
-    return withAuthRetry(() => apiRef.current.getRecentMedia(), 'Get Recent Media');
+    return withAuthRetry(() => apiRef.current.getRecentMedia(page), 'Get Recent Media');
+  }, [isAuthenticated, isAuthenticating, withAuthRetry]);
+
+  const getRecentActivities = useCallback(async (page: number = 1) => {
+    if (!isAuthenticated && !isAuthenticating) return { success: false, error: 'Not authenticated' };
+    return withAuthRetry(() => apiRef.current.getRecentActivities(page), 'Get Recent Activities');
   }, [isAuthenticated, isAuthenticating, withAuthRetry]);
 
   const detectLanguage = useCallback(async (file: File | Blob, duration?: number) => {
@@ -410,6 +416,7 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
     getTranslationLanguagesForApi,
     getTranslationApisForLanguage,
     getRecentMedia,
+    getRecentActivities,
     detectLanguage,
     checkLanguageDetectionStatus,
     initiateTranscription,
