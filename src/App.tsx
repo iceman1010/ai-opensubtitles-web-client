@@ -13,6 +13,7 @@ import Preferences from './components/Preferences';
 import Help from './components/Help';
 import SEO from './components/SEO';
 import ProtectedRoute from './components/ProtectedRoute';
+import ChangelogModal from './components/ChangelogModal';
 import { APIProvider, useAPI } from './contexts/APIContext';
 import { storageService, AppConfig } from './services/storageService';
 import { activityTracker } from './utils/activityTracker';
@@ -150,6 +151,7 @@ function AppContent({
   const [displayedTask, setDisplayedTask] = useState<string | undefined>(undefined);
   const [lastTaskUpdate, setLastTaskUpdate] = useState<number>(Date.now());
   const [lastNotificationUpdate, setLastNotificationUpdate] = useState<number>(Date.now());
+  const [showChangelog, setShowChangelog] = useState(false);
 
   // Auto-login on mount
   useEffect(() => {
@@ -396,7 +398,20 @@ function AppContent({
 
           {/* Version */}
           <div className="sidebar-version" style={{ position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)' }}>
-            Web v{packageJson.version}
+            <span
+              onClick={() => setShowChangelog(true)}
+              style={{
+                cursor: 'pointer',
+                color: 'var(--text-tertiary)',
+                fontSize: '12px',
+                transition: 'color 0.2s ease',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-color)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-tertiary)'}
+              title="View changelog"
+            >
+              Web v{packageJson.version}
+            </span>
           </div>
         </div>
       )}
@@ -652,6 +667,9 @@ function AppContent({
         </div>,
         document.body
       )}
+
+      {/* Changelog Modal */}
+      <ChangelogModal isOpen={showChangelog} onClose={() => setShowChangelog(false)} />
     </div>
   );
 }
