@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAPI } from '../contexts/APIContext';
 import { SubtitleSearchParams, FeatureSearchParams, Feature, SubtitleLanguage } from '../services/api';
 import SearchForm from './SearchForm';
@@ -51,6 +51,11 @@ function Search({ setAppProcessing }: SearchProps) {
   const [previewContent, setPreviewContent] = useState<string | null>(null);
   const [previewFileName, setPreviewFileName] = useState<string>('');
   const [previewLoadingId, setPreviewLoadingId] = useState<number | null>(null);
+
+  const handlePreviewClose = useCallback(() => {
+    setPreviewContent(null);
+    setPreviewFileName('');
+  }, []);
 
   // Load language options on mount
   useEffect(() => {
@@ -472,7 +477,7 @@ function Search({ setAppProcessing }: SearchProps) {
       {/* Subtitle Preview Modal */}
       <SubtitlePreviewModal
         isOpen={previewContent !== null}
-        onClose={() => { setPreviewContent(null); setPreviewFileName(''); }}
+        onClose={handlePreviewClose}
         content={previewContent || ''}
         fileName={previewFileName}
         onDownload={handlePreviewDownload}

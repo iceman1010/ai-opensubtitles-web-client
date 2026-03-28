@@ -39,6 +39,11 @@ function RecentMedia({ setAppProcessing, isVisible = true }: RecentMediaProps) {
   const [previewFileName, setPreviewFileName] = useState<string>('');
   const [previewLoadingKey, setPreviewLoadingKey] = useState<string | null>(null);
 
+  const handlePreviewClose = useCallback(() => {
+    setPreviewContent(null);
+    setPreviewFileName('');
+  }, []);
+
   // Get info panel visibility from config (default to true if not set)
   const showInfoPanel = !config?.hideRecentMediaInfoPanel;
 
@@ -791,7 +796,7 @@ function RecentMedia({ setAppProcessing, isVisible = true }: RecentMediaProps) {
       {/* Subtitle Preview Modal */}
       <SubtitlePreviewModal
         isOpen={previewContent !== null}
-        onClose={() => { setPreviewContent(null); setPreviewFileName(''); }}
+        onClose={handlePreviewClose}
         content={previewContent || ''}
         fileName={previewFileName}
         onDownload={handlePreviewDownload}

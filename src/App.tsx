@@ -213,7 +213,7 @@ function AppContent({
         setDisplayedTask(undefined);
       }
     }
-  }, [isProcessing, currentTask, displayedTask, lastTaskUpdate]);
+  }, [isProcessing, currentTask, lastTaskUpdate]);
 
   // Handle minimum display time for notifications
   useEffect(() => {
@@ -235,7 +235,7 @@ function AppContent({
         setDisplayedNotification('');
       }
     }
-  }, [notification, displayedNotification, lastNotificationUpdate]);
+  }, [notification, lastNotificationUpdate]);
 
   const setAppProcessing = (processing: boolean, task?: string) => {
     setIsProcessing(processing);

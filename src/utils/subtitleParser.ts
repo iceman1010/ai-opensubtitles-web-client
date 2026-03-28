@@ -15,7 +15,7 @@ export interface SubtitleEntry {
   text: string;
 }
 
-function getFormatOption(fileName: string): string | undefined {
+function getFormatOption(fileName: string): string {
   const ext = fileName.toLowerCase().split('.').pop() || '';
   const formatMap: Record<string, string> = {
     srt: 'srt',
@@ -26,7 +26,7 @@ function getFormatOption(fileName: string): string | undefined {
     sbv: 'sbv',
     lrc: 'lrc',
   };
-  return formatMap[ext];
+  return formatMap[ext] || 'srt';
 }
 
 function parseContent(content: string, fileName: string): ContentCaption[] {
@@ -51,12 +51,7 @@ export function parseSubtitleEntries(content: string, fileName: string): Subtitl
 
 export function detectSubtitleFormat(content: string, fileName: string): string {
   const ext = getFormatOption(fileName);
-  if (ext) return ext.toUpperCase();
-  try {
-    return subsrt.detect(content).toUpperCase();
-  } catch {
-    return 'Unknown';
-  }
+  return ext.toUpperCase();
 }
 
 function cleanSubtitleText(text: string): string {
