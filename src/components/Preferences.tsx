@@ -9,8 +9,9 @@ interface PreferencesProps {
 }
 
 function Preferences({ setAppProcessing }: PreferencesProps) {
-  const { config, updateConfig } = useAPI();
+  const { config, updateConfig, api } = useAPI();
   const [cacheCleared, setCacheCleared] = useState(false);
+  const [tokenInvalidated, setTokenInvalidated] = useState(false);
 
   const handleClearCache = () => {
     CacheManager.clear();
@@ -374,6 +375,37 @@ function Preferences({ setAppProcessing }: PreferencesProps) {
               <><i className="fas fa-check" style={{ marginRight: '6px' }}></i>Cleared!</>
             ) : (
               <><i className="fas fa-trash" style={{ marginRight: '6px' }}></i>Clear Now</>
+            )}
+          </button>
+        </div>
+        <div style={{ ...rowStyle, borderTop: '1px solid var(--border-color)', marginTop: '4px', paddingTop: '14px' }}>
+          <div>
+            <div style={labelStyle}>Invalidate Auth Token</div>
+            <div style={sublabelStyle}>Clear the cached token to simulate session expiry (for testing)</div>
+          </div>
+          <button
+            onClick={() => {
+              api.clearCachedToken();
+              setTokenInvalidated(true);
+              setTimeout(() => setTokenInvalidated(false), 3000);
+            }}
+            style={{
+              padding: '6px 16px',
+              borderRadius: '6px',
+              border: '1px solid var(--warning-color, #f0a030)',
+              backgroundColor: tokenInvalidated ? 'var(--success-color)' : 'transparent',
+              color: tokenInvalidated ? '#fff' : 'var(--warning-color, #f0a030)',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: tokenInvalidated ? 'default' : 'pointer',
+              transition: 'all 0.2s',
+            }}
+            disabled={tokenInvalidated}
+          >
+            {tokenInvalidated ? (
+              <><i className="fas fa-check" style={{ marginRight: '6px' }}></i>Invalidated!</>
+            ) : (
+              <><i className="fas fa-key" style={{ marginRight: '6px' }}></i>Invalidate</>
             )}
           </button>
         </div>

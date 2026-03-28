@@ -4,6 +4,12 @@ import { logger } from '../utils/errorLogger';
 import { apiRequestWithRetry, getUserFriendlyErrorMessage } from '../utils/networkUtils';
 import appConfig from '../config/appConfig.json';
 
+/** Re-throw auth errors so they propagate to withAuthRetry in APIContext */
+function rethrowIfAuthError(error: any): void {
+  const status = error?.status || error?.originalError?.status || 0;
+  if (status === 401 || status === 403) throw error;
+}
+
 const getUserAgent = () => {
   if (appConfig && appConfig.userAgent) {
     return appConfig.userAgent;
@@ -375,6 +381,7 @@ export class OpenSubtitlesAPI {
         return { success: true, data };
       }, 'Get Transcription Info', 3);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }
@@ -403,6 +410,7 @@ export class OpenSubtitlesAPI {
         return { success: true, data };
       }, 'Get Translation Info', 3);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }
@@ -434,6 +442,7 @@ export class OpenSubtitlesAPI {
         return await response.json();
       }, 'Initiate Transcription', 3);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       let errorMessage = error.message || 'Transcription failed';
       if (error.responseText) {
         try { const parsed = JSON.parse(error.responseText); errorMessage = parsed.error || parsed.message || (parsed.errors && parsed.errors.join(', ')) || errorMessage; } catch { errorMessage = error.responseText || errorMessage; }
@@ -469,6 +478,7 @@ export class OpenSubtitlesAPI {
         return await response.json();
       }, 'Initiate Translation', 3);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       let errorMessage = error.message || 'Translation failed';
       if (error.responseText) {
         try { const parsed = JSON.parse(error.responseText); errorMessage = parsed.error || parsed.message || (parsed.errors && parsed.errors.join(', ')) || errorMessage; } catch { errorMessage = error.responseText || errorMessage; }
@@ -485,6 +495,7 @@ export class OpenSubtitlesAPI {
         return await response.json();
       }, `Check Transcription Status (${correlationId})`);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { status: 'ERROR', errors: [error.message || 'Failed to check transcription status'] };
     }
   }
@@ -497,6 +508,7 @@ export class OpenSubtitlesAPI {
         return await response.json();
       }, `Check Translation Status (${correlationId})`);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { status: 'ERROR', errors: [error.message || 'Failed to check translation status'] };
     }
   }
@@ -522,6 +534,7 @@ export class OpenSubtitlesAPI {
         return await response.json();
       }, 'Detect Language', 3);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       let errorMessage = error.message || 'Language detection failed';
       if (error.responseText) {
         try { const parsed = JSON.parse(error.responseText); errorMessage = parsed.error || parsed.message || errorMessage; } catch { errorMessage = error.responseText || errorMessage; }
@@ -538,6 +551,7 @@ export class OpenSubtitlesAPI {
         return await response.json();
       }, `Check Language Detection Status (${correlationId})`);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       let errorMessage = error.message || 'Language detection status check failed';
       if (error.responseText) {
         try { const parsed = JSON.parse(error.responseText); errorMessage = parsed.error || parsed.message || errorMessage; } catch { errorMessage = error.responseText || errorMessage; }
@@ -562,6 +576,7 @@ export class OpenSubtitlesAPI {
         return { success: true, data };
       }, `Get Transcription Languages (${apiId})`, 3);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }
@@ -590,6 +605,7 @@ export class OpenSubtitlesAPI {
         return { success: true, data };
       }, `Get Translation Languages (${apiId})`, 3);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }
@@ -609,6 +625,7 @@ export class OpenSubtitlesAPI {
         return { success: true, data: allApis };
       }, `Get Translation APIs (${sourceLanguage}-${targetLanguage})`, 3);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }
@@ -622,6 +639,7 @@ export class OpenSubtitlesAPI {
       }, 'Download File', 3);
       return { success: true, content: result };
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }
@@ -641,6 +659,7 @@ export class OpenSubtitlesAPI {
       }, `Download File (${mediaId}/${fileName})`, 3);
       return { success: true, content: result };
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }
@@ -654,6 +673,7 @@ export class OpenSubtitlesAPI {
         return { success: true, credits: responseData.data?.credits || responseData.credits || 0 };
       }, 'Get Credits', 3);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }
@@ -674,6 +694,7 @@ export class OpenSubtitlesAPI {
         return { success: true, data };
       }, 'Get Services Info', 3);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }
@@ -701,6 +722,7 @@ export class OpenSubtitlesAPI {
         throw new Error('Invalid response format');
       }, 'Get Credit Packages', 3);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }
@@ -721,6 +743,7 @@ export class OpenSubtitlesAPI {
         return { success: true, data };
       }, 'Get Recent Media', 3);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }
@@ -741,6 +764,7 @@ export class OpenSubtitlesAPI {
         return { success: true, data };
       }, 'Get Recent Activities', 3);
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }
@@ -766,6 +790,7 @@ export class OpenSubtitlesAPI {
       }, 'Search Subtitles', 3);
       return { success: true, data: result };
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }
@@ -791,6 +816,7 @@ export class OpenSubtitlesAPI {
       }, 'Search Features', 3);
       return { success: true, data: result };
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }
@@ -818,6 +844,7 @@ export class OpenSubtitlesAPI {
       }, 'Download Subtitle', 3);
       return { success: true, data: result };
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }
@@ -848,6 +875,7 @@ export class OpenSubtitlesAPI {
       CacheManager.set(cacheKey, { data: languages, timestamp: Date.now() });
       return { success: true, data: languages };
     } catch (error: any) {
+      rethrowIfAuthError(error);
       return { success: false, error: getUserFriendlyErrorMessage(error) };
     }
   }

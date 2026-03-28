@@ -28,6 +28,8 @@ interface APIContextType {
   login: (username: string, password: string, apiKey: string, rememberMe?: boolean) => Promise<boolean>;
   logout: () => void;
   autoLogin: () => Promise<boolean>;
+  reconnect: () => Promise<boolean>;
+  sessionExpired: boolean;
   refreshCredits: () => Promise<void>;
   updateCredits: (credits: { used: number; remaining: number }) => void;
   refreshModelInfo: () => Promise<void>;
@@ -78,6 +80,8 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<AppConfig>(() => storageService.getConfig());
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const sessionExpiredRef = useRef(false);
 
   const authPromiseRef = useRef<Promise<boolean> | null>(null);
   const authAttemptedRef = useRef(false);
@@ -220,6 +224,8 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
     storageService.clearCredentials();
     storageService.setRememberMe(false);
     setIsAuthenticated(false);
+    sessionExpiredRef.current = false;
+    setSessionExpired(false);
     setCredits(null);
     setTranscriptionInfo(null);
     setTranslationInfo(null);
@@ -228,17 +234,75 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
     logger.info('APIContext', 'Logged out');
   }, []);
 
-  // ── Auth-retry wrapper: on 401/403, surface error to user (no silent re-login) ──
+  // ── Reconnect: user-initiated single login attempt with stored credentials ──
+  const reconnect = useCallback(async (): Promise<boolean> => {
+    const cfg = storageService.getConfig();
+    if (!cfg.username || !cfg.password || !cfg.apiKey) {
+      setIsAuthenticated(false);
+      sessionExpiredRef.current = false;
+      setSessionExpired(false);
+      setError('No stored credentials. Please log in again.');
+      return false;
+    }
+
+    setIsAuthenticating(true);
+    try {
+      const result = await apiRef.current.login(cfg.username, cfg.password);
+      if (result.success) {
+        sessionExpiredRef.current = false;
+        setSessionExpired(false);
+        setError(null);
+        const creditsResult = await apiRef.current.getCredits();
+        if (creditsResult.success) {
+          setCredits({ used: 0, remaining: creditsResult.credits || 0 });
+        }
+        logger.info('APIContext', 'Reconnected successfully');
+        return true;
+      }
+      sessionExpiredRef.current = false;
+      setSessionExpired(false);
+      setIsAuthenticated(false);
+      setError(result.error || 'Reconnection failed. Please log in again.');
+      return false;
+    } catch (err: any) {
+      sessionExpiredRef.current = false;
+      setSessionExpired(false);
+      setIsAuthenticated(false);
+      setError(err.message || 'Reconnection failed');
+      return false;
+    } finally {
+      setIsAuthenticating(false);
+    }
+  }, []);
+
+  // ── Auth-retry wrapper: on 401/403, show reconnect prompt or redirect to login ──
   const withAuthRetry = useCallback(async <T,>(fn: () => Promise<T>, context: string = 'API Call'): Promise<T> => {
+    // If session is already expired, don't attempt the call at all
+    if (sessionExpiredRef.current) {
+      const err = new Error('Session expired');
+      (err as any).status = 401;
+      throw err;
+    }
     try {
       return await fn();
     } catch (err: any) {
-      const status = err.status || 0;
-      if (status === 401 || status === 403) {
+      const status = err.status || err.originalError?.status || 0;
+      if ((status === 401 || status === 403) && !sessionExpiredRef.current) {
         logger.warn('APIContext', `${context}: Auth error (${status}), session expired`);
         await apiRef.current.clearCachedToken();
-        setIsAuthenticated(false);
-        setError('Session expired. Please log in again.');
+
+        const cfg = storageService.getConfig();
+        if (cfg.username && cfg.password && cfg.apiKey) {
+          // Has stored credentials — show reconnect prompt, stay on current page
+          sessionExpiredRef.current = true;
+          setSessionExpired(true);
+          setError('Session expired. Click Reconnect to continue.');
+        } else {
+          // No stored credentials — redirect to login
+          authAttemptedRef.current = false;
+          setIsAuthenticated(false);
+          setError('Session expired. Please log in again.');
+        }
       }
       throw err;
     }
@@ -405,6 +469,8 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
     login,
     logout,
     autoLogin,
+    reconnect,
+    sessionExpired,
     refreshCredits,
     updateCredits,
     refreshModelInfo,

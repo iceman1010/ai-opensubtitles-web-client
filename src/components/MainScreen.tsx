@@ -324,7 +324,15 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
         } else {
           setTimeout(poll, pollingInterval);
         }
-      } catch (error) {
+      } catch (error: any) {
+        if (error.status === 401 || error.status === 403) {
+          // Session expired — reconnect prompt is shown by withAuthRetry
+          setIsDetectingLanguage(false);
+          setLanguageDetectionCorrelationId(null);
+          setAppProcessing(false);
+          clearLanguageDetectionTimeout();
+          return;
+        }
         logger.error('MainScreen', 'Language detection polling failed', error);
         setStatusMessage({
           type: 'error',
@@ -712,6 +720,12 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
         }
       } catch (error: any) {
         clearPollingTimeout();
+        if (error.status === 401 || error.status === 403) {
+          // Session expired — reconnect prompt is shown by withAuthRetry
+          setIsProcessing(false);
+          setAppProcessing(false);
+          return;
+        }
         setStatusMessage({
           type: 'error',
           message: `${type === 'transcription' ? 'Transcription' : 'Translation'} failed: ${error.message || 'Unknown error'}`

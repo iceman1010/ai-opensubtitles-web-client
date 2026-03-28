@@ -122,10 +122,13 @@ function AppContent({
 }) {
   const {
     isAuthenticated,
+    isAuthenticating,
     credits,
     error: apiError,
     login,
     autoLogin,
+    reconnect,
+    sessionExpired,
     updateCredits,
     logout,
     updateConfig,
@@ -611,6 +614,38 @@ function AppContent({
               <button className="btn-secondary" onClick={() => setShowLogoutModal(false)}>Cancel</button>
               <button className="btn-primary" onClick={() => { setShowLogoutModal(false); logout(); navigate('/login'); }}>
                 Logout
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Session Expired Modal */}
+      {sessionExpired && ReactDOM.createPortal(
+        <div className="session-expired-overlay">
+          <div className="session-expired-modal">
+            <i className="fas fa-exclamation-triangle session-expired-icon"></i>
+            <h3>Session Expired</h3>
+            <p>Your authentication token has expired.</p>
+            <div className="session-expired-actions">
+              <button
+                className="btn-primary"
+                onClick={async () => {
+                  const success = await reconnect();
+                  if (!success) {
+                    navigate('/login');
+                  }
+                }}
+                disabled={isAuthenticating}
+              >
+                {isAuthenticating ? 'Reconnecting...' : 'Reconnect'}
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={() => { logout(); navigate('/login'); }}
+              >
+                Log Out
               </button>
             </div>
           </div>

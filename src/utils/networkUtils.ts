@@ -253,12 +253,14 @@ export async function apiRequestWithRetry<T>(
       (enhancedError as any).type = networkError.type;
       (enhancedError as any).isRetryable = networkError.isRetryable;
       (enhancedError as any).originalError = error;
+      if (error.status) (enhancedError as any).status = error.status;
       throw enhancedError;
     }
     const enhancedError = new Error(networkError.message);
     (enhancedError as any).type = networkError.type;
     (enhancedError as any).isRetryable = networkError.isRetryable;
     (enhancedError as any).originalError = error;
+    if (error.status) (enhancedError as any).status = error.status;
     throw enhancedError;
   } finally {
     activityTracker.endActivity(requestId);
