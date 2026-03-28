@@ -4,6 +4,7 @@ import { UncontrolledTreeEnvironment, StaticTreeDataProvider, Tree, TreeItem, Tr
 import 'react-complex-tree/lib/style-modern.css';
 import { logger } from '../utils/errorLogger';
 import { saveTextFile } from '../hooks/useFileHandler';
+import SubtitlePreviewModal from './SubtitlePreviewModal';
 
 interface RecentMediaProps {
   setAppProcessing: (processing: boolean, task?: string) => void;
@@ -32,6 +33,11 @@ function RecentMedia({ setAppProcessing, isVisible = true }: RecentMediaProps) {
   const isMountedRef = useRef(true);
   const downloadingFilesRef = useRef<Set<string>>(new Set());
   const [downloadingFiles, setDownloadingFiles] = useState<Set<string>>(new Set());
+
+  // Preview state
+  const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const [previewFileName, setPreviewFileName] = useState<string>('');
+  const [previewLoadingKey, setPreviewLoadingKey] = useState<string | null>(null);
 
   // Get info panel visibility from config (default to true if not set)
   const showInfoPanel = !config?.hideRecentMediaInfoPanel;
@@ -135,6 +141,39 @@ function RecentMedia({ setAppProcessing, isVisible = true }: RecentMediaProps) {
       });
     }
   }, [downloadFileByMediaId, setAppProcessing]);
+
+  const handlePreview = useCallback(async (mediaId: number, fileName: string) => {
+    const fileKey = `${mediaId}-${fileName}`;
+    if (previewLoadingKey) return;
+
+    setPreviewLoadingKey(fileKey);
+    try {
+      setAppProcessing(true, `Loading preview for ${fileName}...`);
+      const result = await downloadFileByMediaId(mediaId.toString(), fileName);
+
+      if (result.success && result.content) {
+        setPreviewContent(result.content);
+        setPreviewFileName(fileName);
+      } else {
+        logger.error('RECENT_MEDIA', 'Preview failed:', result.error);
+        setAppProcessing(true, `Preview failed: ${result.error || 'Unknown error'}`);
+        setTimeout(() => setAppProcessing(false), 3000);
+      }
+    } catch (error: any) {
+      logger.error('RECENT_MEDIA', 'Preview error', error);
+      setAppProcessing(true, `Preview failed: ${error.message}`);
+      setTimeout(() => setAppProcessing(false), 3000);
+    } finally {
+      setPreviewLoadingKey(null);
+      setAppProcessing(false);
+    }
+  }, [downloadFileByMediaId, setAppProcessing, previewLoadingKey]);
+
+  const handlePreviewDownload = useCallback(() => {
+    if (previewContent && previewFileName) {
+      saveTextFile(previewContent, previewFileName);
+    }
+  }, [previewContent, previewFileName]);
 
   const formatDateTime = (timeStr: string) => {
     try {
@@ -544,6 +583,53 @@ function RecentMedia({ setAppProcessing, isVisible = true }: RecentMediaProps) {
                     }}>
                       {item.data.fileName}
                     </span>
+                    {/* Preview Button */}
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const isSubtitleFile = /\.(srt|vtt|ass|ssa)$/i.test(item.data.fileName);
+                        if (isSubtitleFile && previewLoadingKey !== fileKey) {
+                          handlePreview(item.data.mediaId, item.data.fileName);
+                        }
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: previewLoadingKey === fileKey ? 'var(--text-tertiary)' :
+                               /\.(srt|vtt|ass|ssa)$/i.test(item.data.fileName) ? 'var(--text-secondary)' : 'transparent',
+                        cursor: /\.(srt|vtt|ass|ssa)$/i.test(item.data.fileName) && previewLoadingKey !== fileKey ? 'pointer' : 'default',
+                        padding: '6px',
+                        borderRadius: '4px',
+                        fontSize: '13px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '28px',
+                        height: '28px',
+                        flexShrink: 0,
+                        marginLeft: 'auto',
+                        transition: 'all 0.2s ease',
+                        pointerEvents: /\.(srt|vtt|ass|ssa)$/i.test(item.data.fileName) ? 'auto' : 'none',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (/\.(srt|vtt|ass|ssa)$/i.test(item.data.fileName) && previewLoadingKey !== fileKey) {
+                          e.currentTarget.style.color = 'var(--primary-color)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (/\.(srt|vtt|ass|ssa)$/i.test(item.data.fileName)) {
+                          e.currentTarget.style.color = 'var(--text-secondary)';
+                        }
+                      }}
+                      title={/\.(srt|vtt|ass|ssa)$/i.test(item.data.fileName) ? 'Preview subtitle' : ''}
+                    >
+                      {previewLoadingKey === fileKey ? (
+                        <i className="fas fa-spinner fa-spin"></i>
+                      ) : (
+                        <i className="fas fa-eye"></i>
+                      )}
+                    </div>
+                    {/* Download Button */}
                     <div
                       onClick={(e) => {
                         e.stopPropagation();
@@ -565,7 +651,6 @@ function RecentMedia({ setAppProcessing, isVisible = true }: RecentMediaProps) {
                         width: '28px',
                         height: '28px',
                         flexShrink: 0,
-                        marginLeft: 'auto',
                         transition: 'all 0.2s ease'
                       }}
                       onMouseEnter={(e) => {
@@ -702,6 +787,15 @@ function RecentMedia({ setAppProcessing, isVisible = true }: RecentMediaProps) {
           )}
         </div>
       )}
+
+      {/* Subtitle Preview Modal */}
+      <SubtitlePreviewModal
+        isOpen={previewContent !== null}
+        onClose={() => { setPreviewContent(null); setPreviewFileName(''); }}
+        content={previewContent || ''}
+        fileName={previewFileName}
+        onDownload={handlePreviewDownload}
+      />
 
       {/* Info Section - Collapsible */}
       {showInfoPanel && (

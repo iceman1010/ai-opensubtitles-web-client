@@ -6,6 +6,7 @@ import SearchResults from './SearchResults';
 import FeatureResults from './FeatureResults';
 import FileSearchForm from './FileSearchForm';
 import { SubtitleSearchResult } from './SubtitleCard';
+import SubtitlePreviewModal from './SubtitlePreviewModal';
 import { saveTextFile } from '../hooks/useFileHandler';
 import { logger } from '../utils/errorLogger';
 
@@ -45,6 +46,11 @@ function Search({ setAppProcessing }: SearchProps) {
 
   // Form initial values state
   const [formInitialValues, setFormInitialValues] = useState<any>(undefined);
+
+  // Preview state
+  const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const [previewFileName, setPreviewFileName] = useState<string>('');
+  const [previewLoadingId, setPreviewLoadingId] = useState<number | null>(null);
 
   // Load language options on mount
   useEffect(() => {
@@ -288,6 +294,46 @@ function Search({ setAppProcessing }: SearchProps) {
     }
   };
 
+  const handlePreview = async (fileId: number, fileName: string) => {
+    try {
+      setPreviewLoadingId(fileId);
+      setAppProcessing(true, `Loading preview for ${fileName}`);
+
+      const response = await downloadSubtitle({ file_id: fileId });
+
+      if (response.success && response.data) {
+        let content: string;
+
+        if (response.data.link) {
+          const fetchResponse = await fetch(response.data.link);
+          content = await fetchResponse.text();
+        } else if (response.data.file) {
+          content = response.data.file;
+        } else {
+          logger.error('Search', 'Preview failed: No link or file in response');
+          return;
+        }
+
+        const defaultFileName = fileName.endsWith('.srt') ? fileName : `${fileName}.srt`;
+        setPreviewContent(content);
+        setPreviewFileName(defaultFileName);
+      } else {
+        logger.error('Search', 'Preview failed:', response.error);
+      }
+    } catch (error) {
+      console.error('Preview error:', error);
+    } finally {
+      setPreviewLoadingId(null);
+      setAppProcessing(false);
+    }
+  };
+
+  const handlePreviewDownload = () => {
+    if (previewContent && previewFileName) {
+      saveTextFile(previewContent, previewFileName);
+    }
+  };
+
 
   return (
     <div className="search-container" style={{
@@ -402,8 +448,10 @@ function Search({ setAppProcessing }: SearchProps) {
           currentPage={currentPage}
           onPageChange={handlePageChange}
           onDownload={handleDownload}
+          onPreview={handlePreview}
           isLoading={isSearching}
           downloadingIds={downloadingIds}
+          previewLoadingId={previewLoadingId}
           searchType={activeTab === 'file' ? 'file' : 'subtitles'}
           hasSearched={hasSearched}
         />
@@ -420,6 +468,15 @@ function Search({ setAppProcessing }: SearchProps) {
           hasSearched={hasFeatureSearched}
         />
       )}
+
+      {/* Subtitle Preview Modal */}
+      <SubtitlePreviewModal
+        isOpen={previewContent !== null}
+        onClose={() => { setPreviewContent(null); setPreviewFileName(''); }}
+        content={previewContent || ''}
+        fileName={previewFileName}
+        onDownload={handlePreviewDownload}
+      />
 
       <style>{`
         .tab-navigation {

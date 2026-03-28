@@ -1,4 +1,6 @@
-// Subtitle parser utility to extract text content from various subtitle formats
+// Subtitle parser utility powered by subsrt-ts
+import subsrt from 'subsrt-ts';
+import type { ContentCaption } from 'subsrt-ts/dist/types/handler';
 
 export interface ParsedSubtitle {
   text: string;
@@ -8,76 +10,53 @@ export interface ParsedSubtitle {
 }
 
 export interface SubtitleEntry {
-  start: string;
-  end: string;
+  start: number;  // milliseconds
+  end: number;    // milliseconds
   text: string;
 }
 
-function parseSRT(content: string): SubtitleEntry[] {
-  const entries: SubtitleEntry[] = [];
-  const blocks = content.trim().split(/\n\s*\n/);
-
-  for (const block of blocks) {
-    const lines = block.trim().split('\n');
-    if (lines.length < 3) continue;
-    const timeLine = lines[1];
-    const textLines = lines.slice(2);
-    const timeMatch = timeLine.match(/(\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2},\d{3})/);
-    if (timeMatch) {
-      entries.push({ start: timeMatch[1], end: timeMatch[2], text: textLines.join(' ').trim() });
-    }
-  }
-  return entries;
+function getFormatOption(fileName: string): string | undefined {
+  const ext = fileName.toLowerCase().split('.').pop() || '';
+  const formatMap: Record<string, string> = {
+    srt: 'srt',
+    vtt: 'vtt',
+    ass: 'ass',
+    ssa: 'ssa',
+    sub: 'sub',
+    sbv: 'sbv',
+    lrc: 'lrc',
+  };
+  return formatMap[ext];
 }
 
-function parseVTT(content: string): SubtitleEntry[] {
-  const entries: SubtitleEntry[] = [];
-  const lines = content.split('\n');
-  let i = 0;
-  while (i < lines.length && !lines[i].includes('-->')) { i++; }
-
-  while (i < lines.length) {
-    const line = lines[i].trim();
-    const timeMatch = line.match(/(\d{2}:\d{2}:\d{2}\.\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}\.\d{3})/);
-    if (timeMatch) {
-      const start = timeMatch[1];
-      const end = timeMatch[2];
-      i++;
-      const textLines: string[] = [];
-      while (i < lines.length && lines[i].trim() !== '' && !lines[i].includes('-->')) {
-        textLines.push(lines[i].trim());
-        i++;
-      }
-      if (textLines.length > 0) {
-        entries.push({ start, end, text: textLines.join(' ').trim() });
-      }
-    } else {
-      i++;
-    }
-  }
-  return entries;
+function parseContent(content: string, fileName: string): ContentCaption[] {
+  const format = getFormatOption(fileName);
+  const options = format ? { format } : undefined;
+  const captions = subsrt.parse(content, options);
+  return captions.filter((c): c is ContentCaption => c.type === 'caption');
 }
 
-function parseASS(content: string): SubtitleEntry[] {
-  const entries: SubtitleEntry[] = [];
-  const lines = content.split('\n');
-
-  for (const line of lines) {
-    const trimmedLine = line.trim();
-    if (trimmedLine.startsWith('Dialogue:')) {
-      const parts = trimmedLine.split(',');
-      if (parts.length >= 10) {
-        const start = parts[1].trim();
-        const end = parts[2].trim();
-        const text = parts.slice(9).join(',').trim();
-        const cleanText = text.replace(/\{[^}]*\}/g, '').trim();
-        if (cleanText) {
-          entries.push({ start, end, text: cleanText });
-        }
-      }
-    }
+export function parseSubtitleEntries(content: string, fileName: string): SubtitleEntry[] {
+  try {
+    return parseContent(content, fileName).map(c => ({
+      start: c.start,
+      end: c.end,
+      text: c.text || c.content || '',
+    }));
+  } catch (error) {
+    console.error('Error parsing subtitle entries:', error);
+    return [];
   }
-  return entries;
+}
+
+export function detectSubtitleFormat(content: string, fileName: string): string {
+  const ext = getFormatOption(fileName);
+  if (ext) return ext.toUpperCase();
+  try {
+    return subsrt.detect(content).toUpperCase();
+  } catch {
+    return 'Unknown';
+  }
 }
 
 function cleanSubtitleText(text: string): string {
@@ -90,40 +69,32 @@ function cleanSubtitleText(text: string): string {
 }
 
 export function parseSubtitleFile(content: string, fileName: string): ParsedSubtitle {
-  const extension = fileName.toLowerCase().split('.').pop() || '';
-  let entries: SubtitleEntry[] = [];
-
   try {
-    switch (extension) {
-      case 'srt': entries = parseSRT(content); break;
-      case 'vtt': entries = parseVTT(content); break;
-      case 'ass': case 'ssa': entries = parseASS(content); break;
-      default:
-        if (content.includes('WEBVTT')) { entries = parseVTT(content); }
-        else if (content.includes('--&gt;') || content.includes('-->')) { entries = parseSRT(content); }
-        else if (content.includes('[Script Info]') || content.includes('Dialogue:')) { entries = parseASS(content); }
-        else {
-          return {
-            text: content.trim(),
-            characterCount: content.trim().length,
-            wordCount: content.trim().split(/\s+/).filter(word => word.length > 0).length,
-            lineCount: content.trim().split('\n').length
-          };
-        }
-        break;
+    const captions = parseContent(content, fileName);
+
+    if (captions.length === 0) {
+      return {
+        text: content.trim(),
+        characterCount: content.trim().length,
+        wordCount: content.trim().split(/\s+/).filter(w => w.length > 0).length,
+        lineCount: content.trim().split('\n').length,
+      };
     }
 
-    const allText = entries.map(entry => cleanSubtitleText(entry.text)).filter(text => text.length > 0).join(' ');
-    const words = allText.split(/\s+/).filter(word => word.length > 0);
+    const allText = captions
+      .map(c => cleanSubtitleText(c.text || c.content || ''))
+      .filter(t => t.length > 0)
+      .join(' ');
+    const words = allText.split(/\s+/).filter(w => w.length > 0);
 
-    return { text: allText, characterCount: allText.length, wordCount: words.length, lineCount: entries.length };
+    return { text: allText, characterCount: allText.length, wordCount: words.length, lineCount: captions.length };
   } catch (error) {
     console.error('Error parsing subtitle file:', error);
     return {
       text: content.trim(),
       characterCount: content.trim().length,
-      wordCount: content.trim().split(/\s+/).filter(word => word.length > 0).length,
-      lineCount: content.trim().split('\n').length
+      wordCount: content.trim().split(/\s+/).filter(w => w.length > 0).length,
+      lineCount: content.trim().split('\n').length,
     };
   }
 }
