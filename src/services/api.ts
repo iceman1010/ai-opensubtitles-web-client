@@ -307,7 +307,7 @@ export class OpenSubtitlesAPI {
     return headers;
   }
 
-  async login(username: string, password: string): Promise<{ success: boolean; token?: string; error?: string }> {
+  async login(username: string, password: string): Promise<{ success: boolean; token?: string; user_id?: number; error?: string }> {
     if (!username || !password) return { success: false, error: 'Username and password are required' };
     if (!this.apiKey) return { success: false, error: 'API Key is required for authentication' };
 
@@ -347,8 +347,9 @@ export class OpenSubtitlesAPI {
       if (responseData.token) {
         this.token = responseData.token;
         this.saveToken(this.token);
+        const userId = responseData.user?.user_id;
         logger.info('API', 'Login successful, token set and cached');
-        return { success: true, token: this.token };
+        return { success: true, token: this.token, user_id: userId };
       }
       return { success: false, error: 'No token received from server' };
     } catch (error: any) {

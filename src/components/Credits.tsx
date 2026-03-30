@@ -3,7 +3,7 @@ import { CreditPackage, RecentActivityItem } from '../services/api';
 import { useAPI } from '../contexts/APIContext';
 
 interface CreditsProps {
-  config: { username?: string };
+  config: { username?: string; userId?: number };
   setAppProcessing: (processing: boolean, task?: string) => void;
   isVisible?: boolean;
 }
@@ -11,7 +11,9 @@ interface CreditsProps {
 const ACTIVITIES_PAGE_SIZE = 20;
 
 function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
-  const { credits, refreshCredits, getCreditPackages, getRecentActivities, isAuthenticated } = useAPI();
+  const { credits, refreshCredits, getCreditPackages, getRecentActivities, isAuthenticated, config: apiConfig } = useAPI();
+  const username = config.username || apiConfig.username;
+  const userId = config.userId || apiConfig.userId;
 
   const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -162,7 +164,18 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
         border: '1px solid var(--border-color)'
       }}>
         <div>
-          <h2 style={{ margin: '0 0 10px 0', color: 'var(--text-primary)' }}>Current Balance</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
+            <h2 style={{ margin: 0, color: 'var(--text-primary)' }}>Current Balance</h2>
+            {username && (
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                <i className="fas fa-user" style={{ marginRight: '6px' }}></i>
+                <span style={{ fontWeight: 500 }}>{username}</span>
+                {userId && (
+                  <span style={{ marginLeft: '10px', opacity: 0.7 }}>ID: {userId}</span>
+                )}
+              </div>
+            )}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {isLoadingCredits ? (
               <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Loading...</p>

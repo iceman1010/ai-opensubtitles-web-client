@@ -8,6 +8,7 @@ export interface AppConfig {
   cacheExpirationHours?: number;
   apiBaseUrl?: string;
   apiUrlParameter?: string;
+  userId?: number;
   autoLanguageDetection?: boolean;
   darkMode?: boolean;
   pollingIntervalSeconds?: number;

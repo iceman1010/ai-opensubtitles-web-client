@@ -159,6 +159,10 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
         
         if (result.success) {
           setIsAuthenticated(true);
+          if (result.user_id) {
+            storageService.saveConfig({ userId: result.user_id });
+            setConfig(prev => ({ ...prev, userId: result.user_id }));
+          }
           logger.info('APIContext', `Logged in as ${user}`);
 
           // Load credits first, then API info — sequential to avoid hammering server
@@ -196,7 +200,7 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
       storageService.saveConfig({ username: user, password: pass, apiKey });
     } else {
       storageService.clearCredentials();
-      storageService.saveConfig({ apiKey });
+      storageService.saveConfig({ username: user, apiKey });
     }
     setConfig(storageService.getConfig());
     return performLogin(user, pass, apiKey, false);
