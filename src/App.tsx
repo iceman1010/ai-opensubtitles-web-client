@@ -273,6 +273,11 @@ function AppContent({
 
   const isLoginPage = location.pathname === '/login';
 
+  // Redirect from login page to home if authenticated
+  if (isLoginPage && isAuthenticated && !isAuthenticating) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <div className="app">
       <ScrollToTop />

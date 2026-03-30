@@ -136,13 +136,27 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
             logger.info('APIContext', 'Cached token verified');
             return true;
           }
-          // Cached token invalid - clear it but DON'T try fresh login
-          // Let user manually log in to get new token
-          logger.warn('APIContext', 'Cached token invalid, please login manually');
+          // Cached token invalid - clear it
+          logger.warn('APIContext', 'Cached token invalid, attempting fresh login');
           await apiRef.current.clearCachedToken();
-          
-          // If this was an auto-login attempt, we just fail silently and let the user login manually
+
+          // If this was an auto-login attempt, try fresh login with stored credentials
           if (isAutoLogin) {
+            const freshResult = await apiRef.current.login(user, pass);
+            if (freshResult.success) {
+              setIsAuthenticated(true);
+              if (freshResult.user_id) {
+                storageService.saveConfig({ userId: freshResult.user_id });
+                setConfig(prev => ({ ...prev, userId: freshResult.user_id }));
+              }
+              logger.info('APIContext', 'Auto-login successful after token refresh');
+              const creditsResult = await apiRef.current.getCredits();
+              if (creditsResult.success) {
+                setCredits({ used: 0, remaining: creditsResult.credits || 0 });
+              }
+              await loadAPIInfo(apiRef.current);
+              return true;
+            }
             setError('Session expired. Please log in again.');
             return false;
           }
