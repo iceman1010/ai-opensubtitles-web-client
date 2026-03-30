@@ -6,6 +6,7 @@ describe('CacheManager', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
     localStorage.clear();
+    CacheManager.clearUser();
   });
 
   afterEach(() => {
@@ -62,5 +63,49 @@ describe('CacheManager', () => {
   it('handles corrupt JSON gracefully', () => {
     localStorage.setItem('ai_opensubtitles_bad', '{invalid json');
     expect(CacheManager.get('bad')).toBeNull();
+  });
+
+  describe('user-scoped cache keys', () => {
+    it('uses username in cache key prefix', () => {
+      CacheManager.setUser('alice');
+      CacheManager.set('test', 'alice-data');
+      expect(localStorage.getItem('ai_opensubtitles_alice_test')).toBeTruthy();
+    });
+
+    it('different users have separate caches', () => {
+      CacheManager.setUser('alice');
+      CacheManager.set('prefs', 'alice-prefs');
+
+      CacheManager.setUser('bob');
+      CacheManager.set('prefs', 'bob-prefs');
+
+      CacheManager.setUser('alice');
+      expect(CacheManager.get('prefs')).toBe('alice-prefs');
+
+      CacheManager.setUser('bob');
+      expect(CacheManager.get('prefs')).toBe('bob-prefs');
+    });
+
+    it('clear only removes current user cache', () => {
+      CacheManager.setUser('alice');
+      CacheManager.set('data', 'alice-data');
+
+      CacheManager.setUser('bob');
+      CacheManager.set('data', 'bob-data');
+      CacheManager.clear();
+
+      expect(CacheManager.get('data')).toBeNull();
+
+      CacheManager.setUser('alice');
+      expect(CacheManager.get('data')).toBe('alice-data');
+    });
+
+    it('clearUser falls back to generic prefix', () => {
+      CacheManager.setUser('alice');
+      CacheManager.set('test', 'user-data');
+      CacheManager.clearUser();
+      // Without user, looks under generic prefix — should not find alice's data
+      expect(CacheManager.get('test')).toBeNull();
+    });
   });
 });

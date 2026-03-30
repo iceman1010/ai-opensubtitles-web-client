@@ -119,6 +119,7 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       setError(null);
 
+      CacheManager.setUser(user);
       apiRef.current.setApiKey(apiKey);
 
       try {
@@ -221,6 +222,7 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     apiRef.current.clearCachedToken();
     apiRef.current.clearCache();
+    CacheManager.clearUser();
     storageService.clearCredentials();
     storageService.setRememberMe(false);
     setIsAuthenticated(false);
@@ -246,6 +248,7 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
     }
 
     setIsAuthenticating(true);
+    CacheManager.setUser(cfg.username);
     try {
       const result = await apiRef.current.login(cfg.username, cfg.password);
       if (result.success) {

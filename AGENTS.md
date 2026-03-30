@@ -147,3 +147,13 @@ describe('CacheManager', () => {
 - Use CSS variables for theming (defined in index.html or CSS files)
 - Follow existing class naming: `kebab-case` with semantic names
 - Prefer inline styles for dynamic values in components
+
+## Server Deployment
+
+Server documentation is located at: `/home/iceman/Documents/projects/Claude/ai.opensubtitles.com/docs/ai1.md`
+
+This includes:
+- Server access: `ssh ai1`
+- Web client deployment path: `/var/www/ai-opensubtitles-web-client`
+- Live URL: `https://ai.opensubtitles.com/ai-web/`
+- Deploy command: `cd /var/www/ai-opensubtitles-web-client && git pull && npm run build`
