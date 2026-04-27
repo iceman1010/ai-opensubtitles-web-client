@@ -6,7 +6,7 @@ import {
   SubtitleSearchParams, SubtitleDownloadParams, SubtitleLanguage,
   FeatureSearchParams, FeatureSearchResponse,
   TranscriptionOptions, TranslationOptions,
-  APIResponse, CompletedTaskData, LanguageDetectionResult
+  APIResponse, CompletedTaskData, LanguageDetectionResult, SupportTicketResponse
 } from '../services/api';
 import { storageService, AppConfig } from '../services/storageService';
 import { logger } from '../utils/errorLogger';
@@ -56,6 +56,7 @@ interface APIContextType {
   downloadSubtitle: (params: SubtitleDownloadParams) => Promise<{ success: boolean; data?: any; error?: string }>;
   searchForFeatures: (params: FeatureSearchParams) => Promise<{ success: boolean; data?: FeatureSearchResponse; error?: string }>;
   getSubtitleSearchLanguages: () => Promise<{ success: boolean; data?: SubtitleLanguage[]; error?: string }>;
+  createSupportTicket: (problem_description: string, email: string, name: string) => Promise<{ success: boolean; ticket_id?: number; error?: string }>;
 
   // Sync helpers for filename generation
   getTranslationLanguageNameSync: (apiId: string, languageCode: string) => string | null;
@@ -459,6 +460,10 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
     return withAuthRetry(() => apiRef.current.getSubtitleSearchLanguages(), 'Get Subtitle Search Languages');
   }, [withAuthRetry]);
 
+  const createSupportTicket = useCallback(async (problem_description: string, email: string, name: string) => {
+    return withAuthRetry(() => apiRef.current.createSupportTicket(problem_description, email, name), 'Create Support Ticket');
+  }, [withAuthRetry]);
+
   // ── Sync helpers for filename generation ──
   const getTranslationLanguageNameSync = useCallback((apiId: string, languageCode: string): string | null => {
     if (!translationInfo?.apis?.[apiId]?.supported_languages) return null;
@@ -516,6 +521,7 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
     downloadSubtitle,
     searchForFeatures,
     getSubtitleSearchLanguages,
+    createSupportTicket,
     getTranslationLanguageNameSync,
     getTranscriptionLanguageNameSync,
     updateConfig,

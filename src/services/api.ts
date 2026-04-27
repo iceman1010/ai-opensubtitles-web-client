@@ -234,6 +234,12 @@ const DEFAULT_BASE_URL = import.meta.env.DEV
   ? '/api/v1'
   : '/ai-web/api/v1';
 
+export interface SupportTicketResponse {
+  ticket_id?: number;
+  message?: string;
+  status?: string;
+}
+
 export class OpenSubtitlesAPI {
   private baseURL = DEFAULT_BASE_URL;
   public apiKey: string = '';
@@ -883,5 +889,111 @@ export class OpenSubtitlesAPI {
 
   clearCache(): void {
     CacheManager.clear();
+  }
+
+  async createSupportTicket(problem_description: string, email: string, name: string): Promise<{ success: boolean; ticket_id?: number; error?: string }> {
+    if (!this.apiKey) return { success: false, error: 'API Key is required' };
+
+    const trimmedDescription = problem_description.trim();
+    if (!trimmedDescription) {
+      return { success: false, error: 'Problem description is required' };
+    }
+    
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      return { success: false, error: 'Email is required' };
+    }
+    // Basic email format validation - must contain @ with characters before and after, and a dot in domain
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return { success: false, error: 'Invalid email format' };
+    }
+
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return { success: false, error: 'Name is required' };
+    }
+
+    try {
+      return await apiRequestWithRetry(async () => {
+        const formData = new FormData();
+        formData.append('problem_description', trimmedDescription);
+        formData.append('email', trimmedEmail);
+        formData.append('name', trimmedName);
+
+        const headers: Record<string, string> = {
+          'Api-Key': this.apiKey
+        };
+        if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+
+        const response = await fetch(this.getAIUrl('/osticket'), {
+          method: 'POST',
+          headers,
+          body: formData
+        });
+
+        const responseText = await response.text();
+
+        if (!response.ok) {
+          const error = new Error(`Request failed: ${response.status} ${response.statusText}`);
+          (error as any).status = response.status;
+          (error as any).responseText = responseText;
+          throw error;
+        }
+
+        // Try to parse JSON response
+        try {
+          const responseData = JSON.parse(responseText);
+          
+          // Check for error status in JSON response
+          if (responseData.status === 'error' || responseData.error) {
+            const errorMsg = responseData.error || 
+                           (Array.isArray(responseData.errors) && responseData.errors[0]) ||
+                           (responseData.error_details?.response_body) ||
+                           'Failed to create support ticket';
+            const err = new Error(errorMsg);
+            (err as any).status = 400;
+            throw err;
+          }
+
+          return {
+            success: true,
+            ticket_id: responseData.ticket_id || responseData.data?.ticket_id
+          };
+        } catch (parseError: any) {
+          // If JSON parse fails, it might be HTML error page
+          if (responseText.includes('missing key parameter')) {
+            const match = responseText.match(/missing key parameter: (\w+)/);
+            if (match) {
+              throw new Error(`Missing required field: ${match[1]}`);
+            }
+          }
+          // Return success if response is plain text success (unlikely, but fallback)
+          return { success: true };
+        }
+      }, 'Create Support Ticket', 3);
+    } catch (error: any) {
+      rethrowIfAuthError(error);
+      
+      // Extract error message from various formats
+      let errorMessage = 'Failed to create support ticket';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.responseText) {
+        try {
+          const parsed = JSON.parse(error.responseText);
+          if (parsed.error) errorMessage = parsed.error;
+          else if (Array.isArray(parsed.errors) && parsed.errors.length > 0) errorMessage = parsed.errors[0];
+          else if (parsed.error_details?.response_body) errorMessage = parsed.error_details.response_body;
+        } catch {
+          // Try to extract from HTML
+          const match = error.responseText.match(/Error: ([^<]+)</);
+          if (match) errorMessage = match[1];
+        }
+      }
+
+      return { success: false, error: errorMessage };
+    }
   }
 }

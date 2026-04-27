@@ -11,6 +11,7 @@ import Search from './components/Search';
 import Info from './components/Info';
 import Preferences from './components/Preferences';
 import Help from './components/Help';
+import Support from './components/Support';
 import SEO from './components/SEO';
 import ProtectedRoute from './components/ProtectedRoute';
 import ChangelogModal from './components/ChangelogModal';
@@ -328,18 +329,24 @@ function AppContent({
                   <span>Preferences</span>
                 </NavLink>
               </li>
-              <li>
-                <NavLink to="/help" className={({ isActive }) => isActive ? 'active' : ''}>
-                  <i className="fas fa-question-circle"></i>
-                  <span>Help</span>
-                </NavLink>
-              </li>
-              <li>
-                <button onClick={() => setShowLogoutModal(true)}>
-                  <i className="fas fa-sign-out-alt"></i>
-                  <span>Logout</span>
-                </button>
-              </li>
+               <li>
+                 <NavLink to="/help" className={({ isActive }) => isActive ? 'active' : ''}>
+                   <i className="fas fa-question-circle"></i>
+                   <span>Help</span>
+                 </NavLink>
+               </li>
+               <li>
+                 <NavLink to="/support" className={({ isActive }) => isActive ? 'active' : ''}>
+                   <i className="fas fa-life-ring"></i>
+                   <span>Support</span>
+                 </NavLink>
+               </li>
+               <li>
+                 <button onClick={() => setShowLogoutModal(true)}>
+                   <i className="fas fa-sign-out-alt"></i>
+                   <span>Logout</span>
+                 </button>
+               </li>
             </ul>
           </nav>
 
@@ -514,6 +521,13 @@ function AppContent({
             <ProtectedRoute isAuthenticated={isAuthenticated}>
               <SEO title="Help" description="Help and documentation for using AI OpenSubtitles." />
               <Help />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/support" element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <SEO title="Support" description="Contact our support team for assistance." />
+              <Support />
             </ProtectedRoute>
           } />
 
