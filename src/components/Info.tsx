@@ -345,9 +345,9 @@ function Info({ setAppProcessing }: InfoProps) {
         <ul style={{ marginLeft: '20px', lineHeight: '1.6', color: 'var(--text-secondary)' }}>
           <li>All prices are quoted in credits, which are deducted from your account upon successful processing</li>
           <li>Transcription costs are calculated based on audio duration (per minute)</li>
-          <li>Translation costs are calculated based on character count (per 500 characters)</li>
-          <li>Failed or cancelled operations do not consume credits</li>
-          <li>Prices may vary based on language complexity and audio quality</li>
+          <li>Translation costs are calculated based on character count (per character)</li>
+          <li>Failed operations do not consume credits</li>
+           <li>Prices may vary based on selected model</li>
           <li>Pricing is subject to change - check this page for the latest information</li>
         </ul>
       </section>
