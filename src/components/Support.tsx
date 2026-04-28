@@ -99,16 +99,14 @@ const Support: React.FC = () => {
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      gap: '20px'
+      gap: '1em'
     }}>
       {/* Header */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        padding: '12px 20px',
-        borderBottom: '1px solid var(--border-color)'
       }}>
-        <h1 style={{ margin: 0, fontSize: '18px', color: 'var(--text-primary)' }}>
+        <h1 >
           Contact Support
         </h1>
       </div>
@@ -116,10 +114,9 @@ const Support: React.FC = () => {
       {/* Content */}
       <div style={{
         flex: 1,
-        padding: '20px',
         overflowY: 'auto'
       }}>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '1em' }}>
           Need help? Fill out the form below and our support team will get back to you as soon as possible.
         </p>
 
