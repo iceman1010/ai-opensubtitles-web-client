@@ -7,3 +7,4 @@ tmp/
 .env.*
 new_site.md
 AGENTS.md
+.kilo/
