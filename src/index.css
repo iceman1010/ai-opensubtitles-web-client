@@ -486,19 +486,6 @@ button {
   align-items: center;
 }
 
-/* Main screen layout */
-.main-screen h1 {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.main-screen p {
-  color: var(--text-secondary);
-  margin: 0;
-}
-
 /* Options section */
 .options-section {
   margin: 0;

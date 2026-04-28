@@ -774,14 +774,14 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
   };
 
   return (
-    <div className="main-screen" style={{
+    <div style={{
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
       gap: '20px',
       position: 'relative'
     }}>
-      <h1>{appConfig.name}</h1>
+      <h1>Single File</h1>
       <p>Select a file to transcribe or translate:</p>
 
       <FileSelector
