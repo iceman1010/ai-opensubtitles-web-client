@@ -175,7 +175,7 @@ body {
 .sidebar nav ul li a:hover i,
 .sidebar nav ul li button:hover i {
   transition: color 0.9s ease, transform 0.3s ease;
-  color: var(--btn-primary-bg);
+  color: var(--input-focus-border);
   transform: scale(1.3);  
 }
 
