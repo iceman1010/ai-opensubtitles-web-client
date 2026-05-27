@@ -44,6 +44,7 @@ interface APIContextType {
   getTranslationApisForLanguage: (sourceLanguage: string, targetLanguage: string) => Promise<{ success: boolean; data?: string[]; error?: string }>;
   getRecentMedia: (page?: number) => Promise<{ success: boolean; data?: RecentMediaItem[]; error?: string }>;
   getRecentActivities: (page?: number) => Promise<{ success: boolean; data?: any; error?: string }>;
+  getPaymentHistory: (page?: number) => Promise<{ success: boolean; data?: any; error?: string }>;
   detectLanguage: (file: File | Blob, duration?: number) => Promise<APIResponse<LanguageDetectionResult>>;
   checkLanguageDetectionStatus: (correlationId: string) => Promise<APIResponse<LanguageDetectionResult>>;
   initiateTranscription: (audioFile: File | Blob, options: TranscriptionOptions) => Promise<APIResponse>;
@@ -401,6 +402,11 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
     return withAuthRetry(() => apiRef.current.getRecentActivities(page), 'Get Recent Activities');
   }, [isAuthenticated, isAuthenticating, withAuthRetry]);
 
+  const getPaymentHistory = useCallback(async (page: number = 1) => {
+    if (!isAuthenticated && !isAuthenticating) return { success: false, error: 'Not authenticated' };
+    return withAuthRetry(() => apiRef.current.getPaymentHistory(page), 'Get Payment History');
+  }, [isAuthenticated, isAuthenticating, withAuthRetry]);
+
   const detectLanguage = useCallback(async (file: File | Blob, duration?: number) => {
     if (!isAuthenticated && !isAuthenticating) return { status: 'ERROR' as const, errors: ['Not authenticated'] };
     return withAuthRetry(() => apiRef.current.detectLanguage(file, duration), 'Detect Language');
@@ -509,6 +515,7 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
     getTranslationApisForLanguage,
     getRecentMedia,
     getRecentActivities,
+    getPaymentHistory,
     detectLanguage,
     checkLanguageDetectionStatus,
     initiateTranscription,

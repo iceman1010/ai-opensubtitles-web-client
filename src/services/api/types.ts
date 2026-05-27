@@ -209,6 +209,15 @@ export interface RecentActivityItem {
   time_str: string;
 }
 
+export interface PaymentHistoryItem {
+  id: number;
+  type: number;
+  type_name: string;
+  credits: number;
+  time: number;
+  time_str: string;
+}
+
 export interface SupportTicketResponse {
   ticket_id?: number;
   message?: string;
