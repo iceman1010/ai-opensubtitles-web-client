@@ -109,7 +109,7 @@ export class OpenSubtitlesAPI {
   async downloadFileByMediaId(mediaId: string, fileName: string) { return filesApi.downloadFileByMediaId(this.ctx(), mediaId, fileName); }
   async getRecentMedia(page?: number) { return filesApi.getRecentMedia(this.ctx(), page); }
   async getRecentActivities(page?: number) { return filesApi.getRecentActivities(this.ctx(), page); }
-  async getPaymentHistory(page?: number) { return filesApi.getPaymentHistory(this.ctx(), page); }
+  async getPaymentHistory(page?: number) { return creditsApi.getPaymentHistory(this.ctx(), page); }
 
   async createSupportTicket(problem_description: string, email: string, name: string) { return supportApi.createSupportTicket(this.ctx(), problem_description, email, name); }
 

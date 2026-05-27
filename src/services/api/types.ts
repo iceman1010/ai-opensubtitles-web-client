@@ -210,12 +210,12 @@ export interface RecentActivityItem {
 }
 
 export interface PaymentHistoryItem {
-  id: number;
-  type: number;
-  type_name: string;
-  credits: number;
   time: number;
-  time_str: string;
+  credits: number;
+  reference: string | null;
+  orderid: string | null;
+  date: string;
+  usd: string;
 }
 
 export interface SupportTicketResponse {
