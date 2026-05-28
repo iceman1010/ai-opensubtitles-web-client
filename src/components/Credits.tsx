@@ -613,6 +613,9 @@ function Credits({ config, setAppProcessing, isVisible = true }: CreditsProps) {
             <i className={`fas fa-sync-alt${isLoadingPayments ? ' fa-spin' : ''}`}></i>
           </button>
         </div>
+        <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+          All amounts are displayed in USD.
+        </p>
 
         {isLoadingPayments && payments.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-secondary)' }}>

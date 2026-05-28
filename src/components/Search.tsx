@@ -7,8 +7,10 @@ import FeatureResults from './FeatureResults';
 import FileSearchForm from './FileSearchForm';
 import { SubtitleSearchResult } from './SubtitleCard';
 import SubtitlePreviewModal from './SubtitlePreviewModal';
+import DownloadQueueBar from './DownloadQueueBar';
 import { saveTextFile } from '../hooks/useFileHandler';
 import { logger } from '../utils/errorLogger';
+import { isFileSystemAccessSupported, pickDownloadFolder, writeFileToHandle } from '../utils/fileSystemAccess';
 
 interface SearchProps {
   setAppProcessing: (processing: boolean, task?: string) => void;
@@ -52,6 +54,11 @@ function Search({ setAppProcessing }: SearchProps) {
   const [previewFileName, setPreviewFileName] = useState<string>('');
   const [previewLoadingId, setPreviewLoadingId] = useState<number | null>(null);
 
+  // Download queue state
+  const [downloadQueue, setDownloadQueue] = useState<SubtitleSearchResult[]>([]);
+  const [batchDownloading, setBatchDownloading] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
+
   const handlePreviewClose = useCallback(() => {
     setPreviewContent(null);
     setPreviewFileName('');
@@ -87,6 +94,7 @@ function Search({ setAppProcessing }: SearchProps) {
       setIsSearching(true);
       setHasSearched(true);
       setAppProcessing(true, 'Searching subtitles');
+      if (page === 0) maybeClearQueue();
 
       // Only fetch from API on first page or new search; otherwise just paginate locally
       if (page === 0 || allSearchResults.length === 0) {
@@ -147,6 +155,7 @@ function Search({ setAppProcessing }: SearchProps) {
       setIsFeatureSearching(true);
       setHasFeatureSearched(true);
       setAppProcessing(true, 'Searching movies and TV shows');
+      if (page === 0) maybeClearQueue();
 
       if (page === 0 || allFeatureResults.length === 0) {
         const response = await searchForFeatures(params);
@@ -197,8 +206,7 @@ function Search({ setAppProcessing }: SearchProps) {
   };
 
   const handleFindSubtitles = (feature: Feature) => {
-    // Switch to subtitle tab
-    setActiveTab('subtitles');
+    handleTabChange('subtitles');
 
     // Pre-fill form with IMDb ID and open advanced options
     if (feature.attributes.imdb_id) {
@@ -220,6 +228,7 @@ function Search({ setAppProcessing }: SearchProps) {
       setIsSearching(true);
       setHasSearched(true);
       setAppProcessing(true, `Searching for subtitles matching ${fileName}`);
+      maybeClearQueue();
 
       const searchParams: SubtitleSearchParams = {
         moviehash: moviehash,
@@ -339,6 +348,109 @@ function Search({ setAppProcessing }: SearchProps) {
     }
   };
 
+  const maybeClearQueue = useCallback(() => {
+    if (!config?.persistDownloadQueue) {
+      setDownloadQueue([]);
+    }
+  }, [config?.persistDownloadQueue]);
+
+  const toggleQueueItem = useCallback((result: SubtitleSearchResult) => {
+    setDownloadQueue(prev => {
+      const exists = prev.some(q => q.id === result.id);
+      return exists ? prev.filter(q => q.id !== result.id) : [...prev, result];
+    });
+  }, []);
+
+  const clearQueue = useCallback(() => {
+    setDownloadQueue([]);
+  }, []);
+
+  const selectAllVisible = useCallback(() => {
+    setDownloadQueue(prev => {
+      const existingIds = new Set(prev.map(q => q.id));
+      const newItems = searchResults.filter(r => !existingIds.has(r.id));
+      return [...prev, ...newItems];
+    });
+  }, [searchResults]);
+
+  const deselectAllVisible = useCallback(() => {
+    setDownloadQueue(prev => {
+      const visibleIds = new Set(searchResults.map(r => r.id));
+      return prev.filter(q => !visibleIds.has(q.id));
+    });
+  }, [searchResults]);
+
+  const handleTabChange = useCallback((tab: SearchTab) => {
+    setActiveTab(tab);
+    maybeClearQueue();
+  }, [maybeClearQueue]);
+
+  const fetchSubtitleContent = async (fileId: number): Promise<string | null> => {
+    const response = await downloadSubtitle({ file_id: fileId });
+    if (!response.success || !response.data) {
+      logger.error('Search', `Batch download failed for file_id: ${fileId}`, response.error);
+      return null;
+    }
+    if (response.data.link) {
+      const fetchResponse = await fetch(response.data.link);
+      return await fetchResponse.text();
+    }
+    if (response.data.file) {
+      return response.data.file;
+    }
+    return null;
+  };
+
+  const handleBatchDownload = useCallback(async () => {
+    if (downloadQueue.length === 0 || batchDownloading) return;
+
+    const useFileSystem = isFileSystemAccessSupported();
+    let dirHandle: FileSystemDirectoryHandle | null = null;
+
+    if (useFileSystem) {
+      dirHandle = await pickDownloadFolder();
+      if (!dirHandle) return;
+    }
+
+    setBatchDownloading(true);
+    const total = downloadQueue.length;
+    setBatchProgress({ current: 0, total });
+    setAppProcessing(true, `Batch downloading ${total} files...`);
+
+    let completed = 0;
+
+    for (const item of [...downloadQueue]) {
+      try {
+        const firstFile = item.attributes.files[0];
+        if (!firstFile) continue;
+
+        const content = await fetchSubtitleContent(firstFile.file_id);
+        if (!content) continue;
+
+        const fileName = firstFile.file_name.endsWith('.srt')
+          ? firstFile.file_name
+          : `${firstFile.file_name}.srt`;
+
+        if (dirHandle) {
+          await writeFileToHandle(dirHandle, fileName, content);
+        } else {
+          saveTextFile(content, fileName);
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        completed++;
+        setBatchProgress({ current: completed, total });
+        setDownloadQueue(prev => prev.filter(q => q.id !== item.id));
+      } catch (error) {
+        logger.error('Search', `Batch download error for item: ${item.id}`, error);
+      }
+    }
+
+    setBatchDownloading(false);
+    setAppProcessing(true, `Batch download complete — ${completed} of ${total} files saved`);
+    setTimeout(() => setAppProcessing(false), 4000);
+  }, [downloadQueue, batchDownloading, downloadSubtitle, setAppProcessing]);
+
 
   return (
     <div className="search-container" style={{
@@ -385,19 +497,19 @@ function Search({ setAppProcessing }: SearchProps) {
         <div className="tab-navigation">
           <button
             className={`tab-button ${activeTab === 'features' ? 'active' : ''}`}
-            onClick={() => setActiveTab('features')}
+            onClick={() => handleTabChange('features')}
           >
             <i className="fas fa-video"></i> Search Movies
           </button>
           <button
             className={`tab-button ${activeTab === 'subtitles' ? 'active' : ''}`}
-            onClick={() => setActiveTab('subtitles')}
+            onClick={() => handleTabChange('subtitles')}
           >
             <i className="fas fa-film"></i> Search Subtitles
           </button>
           <button
             className={`tab-button ${activeTab === 'file' ? 'active' : ''}`}
-            onClick={() => setActiveTab('file')}
+            onClick={() => handleTabChange('file')}
           >
             <i className="fas fa-file-video"></i> Search by File
           </button>
@@ -458,6 +570,11 @@ function Search({ setAppProcessing }: SearchProps) {
           previewLoadingId={previewLoadingId}
           searchType={activeTab === 'file' ? 'file' : 'subtitles'}
           hasSearched={hasSearched}
+          downloadQueue={downloadQueue}
+          onToggleQueueItem={toggleQueueItem}
+          onSelectAll={selectAllVisible}
+          onDeselectAll={deselectAllVisible}
+          batchDownloading={batchDownloading}
         />
       )}
 
@@ -480,6 +597,15 @@ function Search({ setAppProcessing }: SearchProps) {
         content={previewContent || ''}
         fileName={previewFileName}
         onDownload={handlePreviewDownload}
+      />
+
+      {/* Download Queue Bar */}
+      <DownloadQueueBar
+        queueLength={downloadQueue.length}
+        onBatchDownload={handleBatchDownload}
+        onClear={clearQueue}
+        isDownloading={batchDownloading}
+        progress={batchProgress}
       />
 
       <style>{`

@@ -167,6 +167,27 @@ function Preferences({ setAppProcessing }: PreferencesProps) {
         </div>
       </div>
 
+      {/* Search & Downloads */}
+      <div style={sectionStyle}>
+        <div style={sectionTitleStyle}>
+          <i className="fas fa-download" style={{ marginRight: '8px' }}></i>
+          Search & Downloads
+        </div>
+        <div style={rowStyle}>
+          <div>
+            <div style={labelStyle}>Keep Download Queue</div>
+            <div style={sublabelStyle}>Preserve the download queue across searches and tab switches</div>
+          </div>
+          <button
+            style={toggleStyle(!!config?.persistDownloadQueue)}
+            onClick={() => updateConfig({ persistDownloadQueue: !config?.persistDownloadQueue })}
+            aria-label="Toggle persist download queue"
+          >
+            <div style={toggleKnobStyle(!!config?.persistDownloadQueue)} />
+          </button>
+        </div>
+      </div>
+
       {/* Filename Format */}
       <div style={sectionStyle}>
         <div style={sectionTitleStyle}>

@@ -16,6 +16,7 @@ export interface AppConfig {
   hideRecentMediaInfoPanel?: boolean;
   defaultFilenameFormat?: string;
   audio_language_detection_time?: number;
+  persistDownloadQueue?: boolean;
   credits?: {
     used: number;
     remaining: number;
