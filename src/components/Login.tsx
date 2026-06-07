@@ -89,7 +89,7 @@ function Login({ onLogin, setAppProcessing, loginError }: LoginProps) {
           />
         </div>
 
-        <div className="form-group">
+        <div className="form-group" style={{ display: 'none' }}>
           <label htmlFor="apiKey">API Key:</label>
           <input
             type="text"
