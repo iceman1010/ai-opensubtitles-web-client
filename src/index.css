@@ -327,6 +327,26 @@ button {
   transition: width 0.3s ease;
 }
 
+/* Credits flash animation on cost estimate change */
+@keyframes creditsFlash {
+  0% { box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-color: var(--border-color); }
+  30% { box-shadow: 0 0 22px rgba(74, 144, 226, 0.6); border-color: rgba(74, 144, 226, 0.8); }
+  100% { box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-color: var(--border-color); }
+}
+
+.credits-flash {
+  animation: creditsFlash 0.5s ease-out;
+}
+
+@keyframes creditsCostFlash {
+  from { color: #4A90E2; }
+  to { color: #4A90E2; }
+}
+
+.credits-cost-flash {
+  animation: creditsCostFlash 0.5s ease-out;
+}
+
 /* Logo glow animation */
 @keyframes logoGlow {
   0% { box-shadow: 0 0 20px rgba(74, 144, 226, 0.3); }

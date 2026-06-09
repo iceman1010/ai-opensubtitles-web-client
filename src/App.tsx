@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Routes, Route, NavLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
@@ -153,6 +153,23 @@ function AppContent({
   const [lastTaskUpdate, setLastTaskUpdate] = useState<number>(Date.now());
   const [lastNotificationUpdate, setLastNotificationUpdate] = useState<number>(Date.now());
   const [showChangelog, setShowChangelog] = useState(false);
+  const creditsRef = useRef<HTMLDivElement>(null);
+  const costTextRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (estimatedCost !== null && creditsRef.current) {
+      const el = creditsRef.current;
+      el.classList.remove('credits-flash');
+      void el.offsetWidth;
+      el.classList.add('credits-flash');
+    }
+    if (estimatedCost !== null && costTextRef.current) {
+      const el = costTextRef.current;
+      el.classList.remove('credits-cost-flash');
+      void el.offsetWidth;
+      el.classList.add('credits-cost-flash');
+    }
+  }, [estimatedCost]);
 
   // Auto-login on mount
   useEffect(() => {
@@ -539,6 +556,7 @@ function AppContent({
       {/* Floating Credits Display */}
       {credits && !isLoginPage && (
         <div
+          ref={creditsRef}
           onClick={() => navigate('/credits')}
           style={{
             position: 'fixed',
@@ -568,7 +586,9 @@ function AppContent({
           <i className="fas fa-coins" style={{ color: 'var(--text-primary)', marginRight: '6px' }}></i>
           Credits: <strong>{credits.remaining}</strong>
           {estimatedCost !== null && (
-            <div style={{
+            <div
+              ref={costTextRef}
+              style={{
               fontSize: '12px',
               color: estimatedCost === 0 ? 'var(--success-color)' : estimatedCost > credits.remaining ? 'var(--danger-color)' : 'var(--text-muted)',
               marginTop: '4px',
