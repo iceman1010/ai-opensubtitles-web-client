@@ -155,11 +155,25 @@ function AppContent({
   const [showChangelog, setShowChangelog] = useState(false);
   const creditsRef = useRef<HTMLDivElement>(null);
   const costTextRef = useRef<HTMLDivElement>(null);
+  const creditsNumberRef = useRef<HTMLElement>(null);
+
+  const triggerCreditsFlash = (containerClass: string, textClass: string) => {
+    if (creditsRef.current) {
+      creditsRef.current.classList.remove('credits-flash', 'credits-deduct');
+      void creditsRef.current.offsetWidth;
+      creditsRef.current.classList.add(containerClass);
+    }
+    if (creditsNumberRef.current) {
+      creditsNumberRef.current.classList.remove('credits-deduct-text');
+      void creditsNumberRef.current.offsetWidth;
+      creditsNumberRef.current.classList.add(textClass);
+    }
+  };
 
   useEffect(() => {
     if (estimatedCost !== null && creditsRef.current) {
       const el = creditsRef.current;
-      el.classList.remove('credits-flash');
+      el.classList.remove('credits-flash', 'credits-deduct');
       void el.offsetWidth;
       el.classList.add('credits-flash');
     }
@@ -281,6 +295,7 @@ function AppContent({
 
   const handleCreditsUpdate = (creditsData: { used: number; remaining: number }) => {
     updateCredits(creditsData);
+    triggerCreditsFlash('credits-deduct', 'credits-deduct-text');
   };
 
   const handleDarkModeToggle = () => {
@@ -584,7 +599,7 @@ function AppContent({
           }}
         >
           <i className="fas fa-coins" style={{ color: 'var(--text-primary)', marginRight: '6px' }}></i>
-          Credits: <strong>{credits.remaining}</strong>
+          Credits: <strong ref={creditsNumberRef}>{credits.remaining}</strong>
           {estimatedCost !== null && (
             <div
               ref={costTextRef}
