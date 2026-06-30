@@ -9,6 +9,7 @@ import { ffmpegService } from '../services/ffmpegService';
 import { saveTextFile, readTextFile, formatFileSize } from '../hooks/useFileHandler';
 import { parseSubtitleFile } from '../utils/subtitleParser';
 import * as fileFormatsConfig from '../config/fileFormats.json';
+import SubtitlePreviewModal from './SubtitlePreviewModal';
 
 // ── File type helpers ──
 const isVideoFile = (fileName: string): boolean => {
@@ -122,6 +123,10 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
   const [languagesLoaded, setLanguagesLoaded] = useState(false);
   const [showCompletionSummary, setShowCompletionSummary] = useState(false);
   const [showLanguageValidationModal, setShowLanguageValidationModal] = useState(false);
+
+  // Preview state (subtitle preview modal, rendered above the completion summary)
+  const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const [previewFileName, setPreviewFileName] = useState<string>('');
 
   const [batchCreditStats, setBatchCreditStats] = useState({
     totalCreditsUsed: 0,
@@ -960,6 +965,25 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
     }
   };
 
+  // ── Preview helpers ──
+  const handlePreviewFile = (file: BatchFile) => {
+    if (file.outputContent && file.outputFileName) {
+      setPreviewContent(file.outputContent);
+      setPreviewFileName(file.outputFileName);
+    }
+  };
+
+  const handlePreviewClose = () => {
+    setPreviewContent(null);
+    setPreviewFileName('');
+  };
+
+  const handlePreviewDownload = () => {
+    if (previewContent && previewFileName) {
+      saveTextFile(previewContent, previewFileName);
+    }
+  };
+
   // Cleanup
   useEffect(() => {
     return () => {
@@ -1596,21 +1620,78 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
                     <div key={file.id} style={{
                       padding: '8px 12px',
                       borderBottom: index < completedFiles.length - 1 ? '1px solid var(--border-color)' : 'none',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px',
                     }}>
-                      <span style={{ fontSize: '13px', fontFamily: 'monospace', color: 'var(--text-primary)', wordBreak: 'break-all' }}>
+                      <span style={{ fontSize: '13px', fontFamily: 'monospace', color: 'var(--text-primary)', wordBreak: 'break-all', flex: 1, minWidth: 0 }}>
                         {file.outputFileName}
                       </span>
-                      <button
-                        onClick={() => downloadSingleFile(file)}
-                        style={{
-                          padding: '4px 10px', fontSize: '12px', marginLeft: '10px',
-                          backgroundColor: 'var(--success-color)', color: 'white',
-                          border: 'none', borderRadius: '3px', cursor: 'pointer', whiteSpace: 'nowrap',
-                        }}
-                      >
-                        <i className="fas fa-download" style={{ marginRight: '4px' }}></i>Download
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                        {/* Preview Button */}
+                        <div
+                          onClick={() => handlePreviewFile(file)}
+                          title="Preview subtitle"
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            padding: '6px',
+                            borderRadius: '4px',
+                            fontSize: '13px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '28px',
+                            height: '28px',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--primary-color)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                        >
+                          <i className="fas fa-eye"></i>
+                        </div>
+                        {/* Download Button */}
+                        <div
+                          onClick={() => downloadSingleFile(file)}
+                          title="Download file"
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--primary-color)',
+                            cursor: 'pointer',
+                            padding: '6px',
+                            borderRadius: '4px',
+                            fontSize: '13px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '28px',
+                            height: '28px',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(52, 73, 94, 0.7)';
+                            const icon = e.currentTarget.querySelector('i');
+                            if (icon) {
+                              icon.style.transform = 'scale(1.3)';
+                              const isDarkMode = document.documentElement.classList.contains('dark-mode');
+                              icon.style.textShadow = isDarkMode
+                                ? '0 0 8px rgba(255, 255, 0, 0.6)'
+                                : '0 0 8px rgba(0, 150, 255, 0.8)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            const icon = e.currentTarget.querySelector('i');
+                            if (icon) {
+                              icon.style.transform = 'scale(1)';
+                              icon.style.textShadow = 'none';
+                            }
+                          }}
+                        >
+                          <i className="fas fa-download"></i>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1642,6 +1723,15 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
           </div>
         </div>
       )}
+
+      {/* Subtitle Preview Modal (rendered above the completion summary via portal) */}
+      <SubtitlePreviewModal
+        isOpen={previewContent !== null}
+        onClose={handlePreviewClose}
+        content={previewContent || ''}
+        fileName={previewFileName}
+        onDownload={handlePreviewDownload}
+      />
 
       <style>{`
         @media (max-width: 1024px) {
