@@ -12,6 +12,7 @@ import { ffmpegService, MediaInfo } from '../services/ffmpegService';
 import { readTextFile, saveTextFile, formatFileSize } from '../hooks/useFileHandler';
 import appConfig from '../config/appConfig.json';
 import * as fileFormatsConfig from '../config/fileFormats.json';
+import SubtitlePreviewModal from './SubtitlePreviewModal';
 
 const isVideoFile = (fileName: string): boolean => {
   const ext = fileName.toLowerCase().split('.').pop();
@@ -738,9 +739,9 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
     poll();
   };
 
-  // ── Save result file via browser download ──
-  const handleSaveFile = (content: string) => {
-    if (!selectedFile || !fileType) return;
+  // ── Generate the output filename for the processed result ──
+  const generateResultFilename = (): string => {
+    if (!selectedFile || !fileType) return '';
 
     let languageCode = '';
     let languageName = '';
@@ -759,7 +760,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
     }
 
     const filenamePattern = config.defaultFilenameFormat || '{filename}.{language_code}.{type}.{extension}';
-    const newFileName = generateFilename(
+    return generateFilename(
       filenamePattern,
       selectedFile.name,
       languageCode,
@@ -767,6 +768,12 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
       fileType,
       format
     );
+  };
+
+  // ── Save result file via browser download ──
+  const handleSaveFile = (content: string) => {
+    const newFileName = generateResultFilename();
+    if (!newFileName) return;
 
     saveTextFile(content, newFileName);
     setStatusMessage({ type: 'success', message: `File downloaded: ${newFileName}` });
@@ -1051,13 +1058,13 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
         </div>
       )}
 
-      {showPreview && (
-        <PreviewDialog
-          content={previewContent}
-          onClose={() => setShowPreview(false)}
-          onSave={handleSaveFile}
-        />
-      )}
+      <SubtitlePreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        content={previewContent}
+        fileName={generateResultFilename() || selectedFile?.name || ''}
+        onDownload={() => handleSaveFile(previewContent)}
+      />
 
       {/* Credit Warning Modal */}
       {showCreditModal && (
@@ -1084,34 +1091,6 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function PreviewDialog({ content, onClose, onSave }: { content: string; onClose: () => void; onSave: (content: string) => void }) {
-  return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-      <div style={{ backgroundColor: 'var(--bg-primary)', padding: '20px', borderRadius: '8px', maxWidth: '80%', maxHeight: '80%', overflow: 'auto', minWidth: '500px', minHeight: '400px', border: '1px solid var(--border-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-          <h3 style={{ color: 'var(--text-primary)', margin: 0 }}>Result Preview</h3>
-          <button onClick={onClose} style={{ fontSize: '18px', padding: '5px 10px', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer' }}>
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
-
-        <textarea
-          value={content}
-          readOnly
-          style={{ width: '100%', height: '300px', fontFamily: 'monospace', fontSize: '12px', border: '1px solid var(--border-color)', padding: '10px', resize: 'vertical', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-        />
-
-        <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
-          <button onClick={() => onSave(content)} className="btn-primary" style={{ backgroundColor: 'var(--success-color)' }}>
-            Save to File
-          </button>
-          <button onClick={onClose} className="btn-secondary">Close</button>
-        </div>
-      </div>
     </div>
   );
 }
