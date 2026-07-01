@@ -13,25 +13,7 @@ import { readTextFile, saveTextFile, formatFileSize } from '../hooks/useFileHand
 import appConfig from '../config/appConfig.json';
 import * as fileFormatsConfig from '../config/fileFormats.json';
 import SubtitlePreviewModal from './SubtitlePreviewModal';
-
-const isVideoFile = (fileName: string): boolean => {
-  const ext = fileName.toLowerCase().split('.').pop();
-  return ext ? fileFormatsConfig.video.includes(ext) : false;
-};
-
-const isAudioFile = (fileName: string): boolean => {
-  const ext = fileName.toLowerCase().split('.').pop();
-  return ext ? fileFormatsConfig.audio.includes(ext) : false;
-};
-
-const isSubtitleFile = (fileName: string): boolean => {
-  const ext = fileName.toLowerCase().split('.').pop();
-  return ext ? fileFormatsConfig.subtitle.includes(ext) : false;
-};
-
-const isAudioVideoFile = (fileName: string): boolean => {
-  return isVideoFile(fileName) || isAudioFile(fileName);
-};
+import { isVideoFile, isAudioFile, isSubtitleFile, isAudioVideoFile } from '../utils/fileTypeUtils';
 
 interface MainScreenProps {
   config: {
