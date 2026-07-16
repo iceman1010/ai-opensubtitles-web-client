@@ -431,6 +431,42 @@ function Preferences({ setAppProcessing }: PreferencesProps) {
           </button>
         </div>
       </div>
+
+      {/* BETA Mode (Danger Section) */}
+      <div style={{
+        ...sectionStyle,
+        border: '1px solid var(--danger-color)',
+        backgroundColor: 'rgba(220, 53, 69, 0.05)',
+      }}>
+        <div style={{
+          ...sectionTitleStyle,
+          color: 'var(--danger-color)',
+          borderBottom: '1px solid rgba(220, 53, 69, 0.3)',
+        }}>
+          <i className="fas fa-flask" style={{ marginRight: '8px' }}></i>
+          BETA Mode
+        </div>
+        <div style={rowStyle}>
+          <div>
+            <div style={{ ...labelStyle, color: 'var(--danger-color)', fontWeight: '600' }}>
+              Enable BETA Features
+            </div>
+            <div style={sublabelStyle}>
+              ⚠️ Enables experimental features that may be unstable or incomplete. Use at your own risk.
+            </div>
+          </div>
+          <button
+            style={{
+              ...toggleStyle(!!config?.betaMode),
+              backgroundColor: config?.betaMode ? 'var(--danger-color)' : 'var(--border-color)',
+            }}
+            onClick={() => updateConfig({ betaMode: !config?.betaMode })}
+            aria-label="Toggle beta mode"
+          >
+            <div style={toggleKnobStyle(!!config?.betaMode)} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

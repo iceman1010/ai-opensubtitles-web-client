@@ -229,6 +229,7 @@ export interface ApiContext {
   token: string;
   baseURL: string;
   apiUrlParameter: string;
+  betaMode: boolean;
   getHeaders(includeAuth?: boolean, contentType?: string): Record<string, string>;
   getAIUrl(endpoint: string): string;
   getLoginUrl(endpoint: string): string;

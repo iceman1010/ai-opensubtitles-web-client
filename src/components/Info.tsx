@@ -170,6 +170,17 @@ function Info({ setAppProcessing }: InfoProps) {
     });
   };
 
+  const descKeyFor = (section: SectionKey, modelName: string) => `${section}:${modelName}:desc`;
+  const toggleDesc = (section: SectionKey, modelName: string) => {
+    const k = descKeyFor(section, modelName);
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+  };
+
   const LanguageList: React.FC<{ languages: LanguageInfo[] | undefined; modelName: string }> = ({ languages, modelName }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -493,6 +504,7 @@ function Info({ setAppProcessing }: InfoProps) {
           <tbody>
             {sorted.map((model, i) => {
               const expanded = expandedRows.has(rowKeyFor(section, model.name));
+              const descExpanded = expandedRows.has(descKeyFor(section, model.name));
               const count = model.languages_supported?.length ?? 0;
               const stripeBg = i % 2 ? 'var(--bg-tertiary)' : 'var(--bg-secondary)';
               return (
@@ -534,8 +546,13 @@ function Info({ setAppProcessing }: InfoProps) {
                       </button>
                     </td>
                     <td
-                      style={{ ...tdBase, maxWidth: '240px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                      title={model.description}
+                      style={{
+                        ...tdBase,
+                        maxWidth: '360px',
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word',
+                        lineHeight: '1.5',
+                      }}
                     >
                       {model.description}
                     </td>
@@ -563,6 +580,7 @@ function Info({ setAppProcessing }: InfoProps) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
         {sorted.map((model, i) => {
           const expanded = expandedRows.has(rowKeyFor(section, model.name));
+          const descExpanded = expandedRows.has(descKeyFor(section, model.name));
           const count = model.languages_supported?.length ?? 0;
           return (
             <div
@@ -594,13 +612,15 @@ function Info({ setAppProcessing }: InfoProps) {
                   </span>
                 </div>
                 <div
-                  title={model.description}
+                  onClick={() => toggleDesc(section, model.name)}
+                  title={descExpanded ? 'Click to collapse' : 'Click to expand'}
                   style={{
                     flex: '1 1 30%',
                     minWidth: '160px',
                     fontSize: '13px',
                     color: 'var(--text-secondary)',
-                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    whiteSpace: descExpanded ? 'normal' : 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                   }}

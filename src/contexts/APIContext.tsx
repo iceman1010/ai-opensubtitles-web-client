@@ -94,7 +94,13 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
     if (cfg.apiKey) apiRef.current.setApiKey(cfg.apiKey);
     if (cfg.apiBaseUrl) apiRef.current.setBaseUrl(cfg.apiBaseUrl);
     if (cfg.apiUrlParameter) apiRef.current.setApiUrlParameter(cfg.apiUrlParameter);
+    apiRef.current.setBetaMode(!!cfg.betaMode);
   }, []);
+
+  // ── Sync betaMode when config changes ──
+  useEffect(() => {
+    apiRef.current.setBetaMode(!!config.betaMode);
+  }, [config.betaMode]);
 
   // ── Load API info sequentially (avoid parallel request storms) ──
   const loadAPIInfo = async (apiInstance: OpenSubtitlesAPI) => {
@@ -235,6 +241,7 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
     if (!cfg.apiKey || !cfg.username || !cfg.password) return false;
     if (cfg.apiBaseUrl) apiRef.current.setBaseUrl(cfg.apiBaseUrl);
     if (cfg.apiUrlParameter) apiRef.current.setApiUrlParameter(cfg.apiUrlParameter);
+    apiRef.current.setBetaMode(!!cfg.betaMode);
     
     return performLogin(cfg.username, cfg.password, cfg.apiKey, true);
   }, []);

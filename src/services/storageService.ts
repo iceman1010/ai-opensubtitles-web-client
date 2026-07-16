@@ -17,6 +17,7 @@ export interface AppConfig {
   defaultFilenameFormat?: string;
   audio_language_detection_time?: number;
   persistDownloadQueue?: boolean;
+  betaMode?: boolean;
   credits?: {
     used: number;
     remaining: number;

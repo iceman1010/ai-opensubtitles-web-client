@@ -42,6 +42,7 @@ export class OpenSubtitlesAPI {
   public apiKey: string = '';
   private token: string = '';
   private apiUrlParameter: string = '';
+  private betaMode: boolean = false;
 
   constructor(apiKey?: string, baseUrl?: string, apiUrlParameter?: string) {
     if (apiKey) this.setApiKey(apiKey);
@@ -52,9 +53,10 @@ export class OpenSubtitlesAPI {
   setBaseUrl(baseUrl: string): void { this.baseURL = baseUrl; }
   setApiUrlParameter(apiUrlParameter: string): void { this.apiUrlParameter = apiUrlParameter; }
   setApiKey(apiKey: string): void { this.apiKey = apiKey; }
+  setBetaMode(betaMode: boolean): void { this.betaMode = betaMode; }
 
   private ctx() {
-    return getApiContext(this.baseURL, this.apiKey, this.token, this.apiUrlParameter);
+    return getApiContext(this.baseURL, this.apiKey, this.token, this.apiUrlParameter, this.betaMode);
   }
 
   async loadCachedToken(): Promise<boolean> {

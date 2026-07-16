@@ -21,14 +21,18 @@ export function buildHeaders(
   return headers;
 }
 
-export function buildAIUrl(baseURL: string, endpoint: string, apiUrlParameter: string): string {
-  const baseUrl = `${baseURL}/ai${endpoint}`;
-  return apiUrlParameter ? `${baseUrl}${apiUrlParameter}` : baseUrl;
+export function buildAIUrl(baseURL: string, endpoint: string, apiUrlParameter: string, betaMode: boolean = false): string {
+  let url = `${baseURL}/ai${endpoint}`;
+  if (apiUrlParameter) url += apiUrlParameter;
+  if (betaMode) url += url.includes('?') ? '&beta=true' : '?beta=true';
+  return url;
 }
 
-export function buildLoginUrl(baseURL: string, endpoint: string, apiUrlParameter: string): string {
-  const baseUrl = `${baseURL}${endpoint}`;
-  return apiUrlParameter ? `${baseUrl}${apiUrlParameter}` : baseUrl;
+export function buildLoginUrl(baseURL: string, endpoint: string, apiUrlParameter: string, betaMode: boolean = false): string {
+  let url = `${baseURL}${endpoint}`;
+  if (apiUrlParameter) url += apiUrlParameter;
+  if (betaMode) url += url.includes('?') ? '&beta=true' : '?beta=true';
+  return url;
 }
 
 export function getApiContext(
@@ -36,16 +40,18 @@ export function getApiContext(
   apiKey: string,
   token: string,
   apiUrlParameter: string,
+  betaMode: boolean = false,
 ): ApiContext {
   return {
     apiKey,
     token,
     baseURL,
     apiUrlParameter,
+    betaMode,
     getHeaders: (includeAuth?: boolean, contentType?: string) =>
       buildHeaders(apiKey, token, includeAuth, contentType),
-    getAIUrl: (endpoint: string) => buildAIUrl(baseURL, endpoint, apiUrlParameter),
-    getLoginUrl: (endpoint: string) => buildLoginUrl(baseURL, endpoint, apiUrlParameter),
+    getAIUrl: (endpoint: string) => buildAIUrl(baseURL, endpoint, apiUrlParameter, betaMode),
+    getLoginUrl: (endpoint: string) => buildLoginUrl(baseURL, endpoint, apiUrlParameter, betaMode),
   };
 }
 
