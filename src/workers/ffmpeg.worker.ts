@@ -58,7 +58,8 @@ async function extractAudio(
   const ret = await ffmpeg.exec(args);
   console.debug(`[ffmpeg-worker] exec exit code: ${ret} (input: ${inputName}, output: ${outputName})`);
   if (ret !== 0) {
-    console.error(`[ffmpeg-worker] ffmpeg exec FAILED with code ${ret} — output file likely not created`);
+    await ffmpeg.deleteFile(inputName).catch(() => undefined);
+    throw new Error(`ffmpeg failed with exit code ${ret} while processing ${inputName}`);
   }
   const data = await ffmpeg.readFile(outputName);
 
@@ -84,7 +85,7 @@ async function convertAudio(
 
   await ffmpeg.writeFile(inputName, fileData);
 
-  await ffmpeg.exec([
+  const ret = await ffmpeg.exec([
     '-i', inputName,
     '-vn',
     '-acodec', 'libmp3lame',
@@ -92,6 +93,10 @@ async function convertAudio(
     '-ar', '16000',
     outputName
   ]);
+  if (ret !== 0) {
+    await ffmpeg.deleteFile(inputName).catch(() => undefined);
+    throw new Error(`ffmpeg failed with exit code ${ret} while converting ${inputName}`);
+  }
 
   const data = await ffmpeg.readFile(outputName);
 

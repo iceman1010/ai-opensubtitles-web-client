@@ -16,6 +16,13 @@ export class BrowserFFmpegService {
   private worker: Worker | null = null;
   private isLoaded = false;
   private loadPromise: Promise<void> | null = null;
+  private opQueue: Promise<unknown> = Promise.resolve();
+
+  private enqueue<T>(op: () => Promise<T>): Promise<T> {
+    const next = this.opQueue.then(op, op);
+    this.opQueue = next.then(() => undefined, () => undefined);
+    return next;
+  }
 
   async initialize(): Promise<boolean> {
     if (this.isLoaded) return true;
@@ -86,7 +93,9 @@ export class BrowserFFmpegService {
     onProgress?: (percent: number) => void,
     durationSeconds?: number
   ): Promise<Blob> {
-    await this.initialize();
+    if (!(await this.initialize())) {
+      throw new Error('FFmpeg WASM failed to load; cannot extract audio');
+    }
 
     const sizeCheck = this.checkFileSize(file);
     if (!sizeCheck.ok) throw new Error(sizeCheck.error);
@@ -97,7 +106,7 @@ export class BrowserFFmpegService {
     const inputName = file.name;
     const outputName = file.name.replace(/\.[^.]+$/, '') + '_converted.mp3';
 
-    return new Promise((resolve, reject) => {
+    return this.enqueue(() => new Promise((resolve, reject) => {
       const handler = (e: MessageEvent) => {
         switch (e.data.type) {
           case 'progress':
@@ -121,14 +130,16 @@ export class BrowserFFmpegService {
         { cmd: 'extractAudio', fileData, inputName, outputName, durationSeconds },
         [fileData.buffer] // Transfer, not copy
       );
-    });
+    }));
   }
 
   async convertAudioToMp3(
     file: File,
     onProgress?: (percent: number) => void
   ): Promise<Blob> {
-    await this.initialize();
+    if (!(await this.initialize())) {
+      throw new Error('FFmpeg WASM failed to load; cannot convert audio');
+    }
 
     const sizeCheck = this.checkFileSize(file);
     if (!sizeCheck.ok) throw new Error(sizeCheck.error);
@@ -139,7 +150,7 @@ export class BrowserFFmpegService {
     const inputName = file.name;
     const outputName = file.name.replace(/\.[^.]+$/, '') + '_converted.mp3';
 
-    return new Promise((resolve, reject) => {
+    return this.enqueue(() => new Promise((resolve, reject) => {
       const handler = (e: MessageEvent) => {
         switch (e.data.type) {
           case 'progress':
@@ -161,11 +172,13 @@ export class BrowserFFmpegService {
         { cmd: 'convertAudio', fileData, inputName, outputName },
         [fileData.buffer]
       );
-    });
+    }));
   }
 
   async getMediaInfo(file: File): Promise<MediaInfo> {
-    await this.initialize();
+    if (!(await this.initialize())) {
+      throw new Error('FFmpeg WASM failed to load; cannot read media info');
+    }
 
     // For media info, we only need a small portion of the file.
     // Read first 10MB max to detect format/streams.
@@ -174,7 +187,7 @@ export class BrowserFFmpegService {
     const fileData = new Uint8Array(await probeSlice.arrayBuffer());
     const inputName = file.name;
 
-    const result = await new Promise<MediaInfo>((resolve, reject) => {
+    const result = await this.enqueue(() => new Promise<MediaInfo>((resolve, reject) => {
       const handler = (e: MessageEvent) => {
         switch (e.data.type) {
           case 'mediaInfo':
@@ -193,7 +206,7 @@ export class BrowserFFmpegService {
         { cmd: 'getMediaInfo', fileData, inputName },
         [fileData.buffer]
       );
-    });
+    }));
 
     // MP4 and some other containers store metadata (moov atom) at the end
     // of the file. When we only probe the first 10MB, ffmpeg may not find

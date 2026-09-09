@@ -150,8 +150,8 @@ function AppContent({
   const [displayedNotification, setDisplayedNotification] = useState<string>('');
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
   const [displayedTask, setDisplayedTask] = useState<string | undefined>(undefined);
-  const [lastTaskUpdate, setLastTaskUpdate] = useState<number>(Date.now());
-  const [lastNotificationUpdate, setLastNotificationUpdate] = useState<number>(Date.now());
+  const lastTaskUpdateRef = useRef<number>(Date.now());
+  const lastNotificationUpdateRef = useRef<number>(Date.now());
   const [showChangelog, setShowChangelog] = useState(false);
   const creditsRef = useRef<HTMLDivElement>(null);
   const costTextRef = useRef<HTMLDivElement>(null);
@@ -169,6 +169,8 @@ function AppContent({
       creditsNumberRef.current.classList.add(textClass);
     }
   };
+
+  const handleProcessingStateChange = useCallback((p: boolean) => setIsProcessing(p), []);
 
   useEffect(() => {
     if (estimatedCost !== null && creditsRef.current) {
@@ -233,9 +235,9 @@ function AppContent({
 
     if (isProcessing && currentTask) {
       setDisplayedTask(currentTask);
-      setLastTaskUpdate(Date.now());
+      lastTaskUpdateRef.current = Date.now();
     } else if (!isProcessing && displayedTask) {
-      const elapsed = Date.now() - lastTaskUpdate;
+      const elapsed = Date.now() - lastTaskUpdateRef.current;
       const remaining = Math.max(0, MIN_DISPLAY_TIME - elapsed);
 
       if (remaining > 0) {
@@ -247,7 +249,7 @@ function AppContent({
         setDisplayedTask(undefined);
       }
     }
-  }, [isProcessing, currentTask, lastTaskUpdate]);
+  }, [isProcessing, currentTask, displayedTask]);
 
   // Handle minimum display time for notifications
   useEffect(() => {
@@ -255,9 +257,9 @@ function AppContent({
 
     if (notification.visible && notification.message) {
       setDisplayedNotification(notification.message);
-      setLastNotificationUpdate(Date.now());
+      lastNotificationUpdateRef.current = Date.now();
     } else if (!notification.visible && displayedNotification) {
-      const elapsed = Date.now() - lastNotificationUpdate;
+      const elapsed = Date.now() - lastNotificationUpdateRef.current;
       const remaining = Math.max(0, MIN_DISPLAY_TIME - elapsed);
 
       if (remaining > 0) {
@@ -269,7 +271,7 @@ function AppContent({
         setDisplayedNotification('');
       }
     }
-  }, [notification, lastNotificationUpdate]);
+  }, [notification, displayedNotification]);
 
   const setAppProcessing = (processing: boolean, task?: string) => {
     setIsProcessing(processing);
@@ -478,7 +480,7 @@ function AppContent({
                   setAppProcessing={setAppProcessing}
                   onNavigateToCredits={() => navigate('/credits')}
                   onCreditsUpdate={handleCreditsUpdate}
-                  onProcessingStateChange={(p) => setIsProcessing(p)}
+                  onProcessingStateChange={handleProcessingStateChange}
                   onEstimatedCostChange={setEstimatedCost}
                 />
               )}
@@ -492,7 +494,7 @@ function AppContent({
                 <BatchScreen
                   config={config}
                   setAppProcessing={setAppProcessing}
-                  onProcessingStateChange={(p) => setIsProcessing(p)}
+                  onProcessingStateChange={handleProcessingStateChange}
                   onEstimatedCostChange={setEstimatedCost}
                 />
               )}
