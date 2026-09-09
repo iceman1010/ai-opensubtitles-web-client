@@ -280,7 +280,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
         <div style={{
           textAlign: 'center', padding: '60px 20px',
           backgroundColor: 'var(--bg-secondary)', borderRadius: '12px',
-          border: '2px dashed var(--border-color)', margin: '20px 0',
+          border: '2px dashed var(--border-color)',
         }}>
           <div style={{ fontSize: '48px', marginBottom: '20px' }}>
             <i className="fas fa-layer-group" style={{ color: 'var(--text-muted)' }}></i>
@@ -377,14 +377,6 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
         fileName={previewFileName}
         onDownload={handlePreviewDownload}
       />
-
-      <style>{`
-        @media (max-width: 1024px) {
-          .batch-settings-panel {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </div>
   );
 };

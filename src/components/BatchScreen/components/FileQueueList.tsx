@@ -43,13 +43,14 @@ export const FileQueueList: React.FC<FileQueueListProps> = ({
       padding: '15px',
       backgroundColor: 'var(--bg-secondary)',
     }}>
-      <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-        <h3>File Queue ({queue.length} files)</h3>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap', marginBottom: '12px' }}>
+        <h3 style={{ margin: 0 }}>File Queue ({queue.length} files)</h3>
         {isDetectingLanguages && (
-          <p style={{ color: 'var(--accent-color)', fontSize: '14px', fontStyle: 'italic' }}>
+          <p style={{ color: 'var(--accent-color)', fontSize: '14px', fontStyle: 'italic', margin: 0 }}>
             Detecting languages sequentially... ({queue.filter(f => f.status === 'detecting').length} in progress)
           </p>
         )}
+        <div style={{ flex: 1 }}></div>
         <button
           onClick={onClear}
           disabled={isProcessing}
