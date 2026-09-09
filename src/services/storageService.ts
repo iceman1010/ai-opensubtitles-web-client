@@ -18,6 +18,7 @@ export interface AppConfig {
   audio_language_detection_time?: number;
   persistDownloadQueue?: boolean;
   betaMode?: boolean;
+  serverDevMode?: boolean;
   credits?: {
     used: number;
     remaining: number;

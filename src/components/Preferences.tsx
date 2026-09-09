@@ -432,7 +432,43 @@ function Preferences({ setAppProcessing }: PreferencesProps) {
         </div>
       </div>
 
-      {/* BETA Mode (Danger Section) */}
+      {/* BETA Mode (Warning Section) */}
+      <div style={{
+        ...sectionStyle,
+        border: '1px solid var(--warning-color)',
+        backgroundColor: 'rgba(255, 193, 7, 0.05)',
+      }}>
+        <div style={{
+          ...sectionTitleStyle,
+          color: 'var(--warning-color)',
+          borderBottom: '1px solid rgba(255, 193, 7, 0.3)',
+        }}>
+          <i className="fas fa-flask" style={{ marginRight: '8px' }}></i>
+          BETA Mode
+        </div>
+        <div style={rowStyle}>
+          <div>
+            <div style={{ ...labelStyle, color: 'var(--warning-color)', fontWeight: '600' }}>
+              Enable BETA Features
+            </div>
+            <div style={sublabelStyle}>
+              ⚠️ Enables experimental features that may be unstable or incomplete. Use at your own risk.
+            </div>
+          </div>
+          <button
+            style={{
+              ...toggleStyle(!!config?.betaMode),
+              backgroundColor: config?.betaMode ? 'var(--warning-color)' : 'var(--border-color)',
+            }}
+            onClick={() => updateConfig({ betaMode: !config?.betaMode })}
+            aria-label="Toggle beta mode"
+          >
+            <div style={toggleKnobStyle(!!config?.betaMode)} />
+          </button>
+        </div>
+      </div>
+
+      {/* SERVER Development Mode (Danger Section) */}
       <div style={{
         ...sectionStyle,
         border: '1px solid var(--danger-color)',
@@ -443,27 +479,27 @@ function Preferences({ setAppProcessing }: PreferencesProps) {
           color: 'var(--danger-color)',
           borderBottom: '1px solid rgba(220, 53, 69, 0.3)',
         }}>
-          <i className="fas fa-flask" style={{ marginRight: '8px' }}></i>
-          BETA Mode
+          <i className="fas fa-server" style={{ marginRight: '8px' }}></i>
+          SERVER Development Mode
         </div>
         <div style={rowStyle}>
           <div>
             <div style={{ ...labelStyle, color: 'var(--danger-color)', fontWeight: '600' }}>
-              Enable BETA Features
+              Enable Server Development Mode
             </div>
             <div style={sublabelStyle}>
-              ⚠️ Enables experimental features that may be unstable or incomplete. Use at your own risk.
+              ⚠️ Should never be used by regular users — it will most likely not work for them.
             </div>
           </div>
           <button
             style={{
-              ...toggleStyle(!!config?.betaMode),
-              backgroundColor: config?.betaMode ? 'var(--danger-color)' : 'var(--border-color)',
+              ...toggleStyle(!!config?.serverDevMode),
+              backgroundColor: config?.serverDevMode ? 'var(--danger-color)' : 'var(--border-color)',
             }}
-            onClick={() => updateConfig({ betaMode: !config?.betaMode })}
-            aria-label="Toggle beta mode"
+            onClick={() => updateConfig({ serverDevMode: !config?.serverDevMode })}
+            aria-label="Toggle server development mode"
           >
-            <div style={toggleKnobStyle(!!config?.betaMode)} />
+            <div style={toggleKnobStyle(!!config?.serverDevMode)} />
           </button>
         </div>
       </div>

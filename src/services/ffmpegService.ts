@@ -38,7 +38,8 @@ export class BrowserFFmpegService {
           resolve();
         } else if (e.data.type === 'error') {
           this.worker!.removeEventListener('message', handler);
-          logger.error('FFmpeg', 'FFmpeg WASM failed to load', e.data.error);
+          console.error('[ffmpeg-service] worker reported load error:', e.data);
+          logger.error('FFmpeg', 'FFmpeg WASM failed to load', e.data);
           reject(new Error(e.data.error));
         }
       };
@@ -52,6 +53,7 @@ export class BrowserFFmpegService {
       return true;
     } catch {
       this.loadPromise = null;
+      console.error('[ffmpeg-service] initialize() FAILED, returning false (worker may be unusable)');
       return false;
     }
   }
@@ -108,6 +110,7 @@ export class BrowserFFmpegService {
             break;
           case 'error':
             this.worker!.removeEventListener('message', handler);
+            console.error('[ffmpeg-service] extractAudioFromVideo worker error:', e.data);
             reject(new Error(e.data.error));
             break;
         }

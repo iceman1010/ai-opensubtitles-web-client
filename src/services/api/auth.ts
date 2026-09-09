@@ -21,17 +21,19 @@ export function buildHeaders(
   return headers;
 }
 
-export function buildAIUrl(baseURL: string, endpoint: string, apiUrlParameter: string, betaMode: boolean = false): string {
+export function buildAIUrl(baseURL: string, endpoint: string, apiUrlParameter: string, betaMode: boolean = false, serverDevMode: boolean = false): string {
   let url = `${baseURL}/ai${endpoint}`;
   if (apiUrlParameter) url += apiUrlParameter;
   if (betaMode) url += url.includes('?') ? '&beta=true' : '?beta=true';
+  if (serverDevMode) url += url.includes('?') ? '&dev=true' : '?dev=true';
   return url;
 }
 
-export function buildLoginUrl(baseURL: string, endpoint: string, apiUrlParameter: string, betaMode: boolean = false): string {
+export function buildLoginUrl(baseURL: string, endpoint: string, apiUrlParameter: string, betaMode: boolean = false, serverDevMode: boolean = false): string {
   let url = `${baseURL}${endpoint}`;
   if (apiUrlParameter) url += apiUrlParameter;
   if (betaMode) url += url.includes('?') ? '&beta=true' : '?beta=true';
+  if (serverDevMode) url += url.includes('?') ? '&dev=true' : '?dev=true';
   return url;
 }
 
@@ -41,6 +43,7 @@ export function getApiContext(
   token: string,
   apiUrlParameter: string,
   betaMode: boolean = false,
+  serverDevMode: boolean = false,
 ): ApiContext {
   return {
     apiKey,
@@ -48,10 +51,11 @@ export function getApiContext(
     baseURL,
     apiUrlParameter,
     betaMode,
+    serverDevMode,
     getHeaders: (includeAuth?: boolean, contentType?: string) =>
       buildHeaders(apiKey, token, includeAuth, contentType),
-    getAIUrl: (endpoint: string) => buildAIUrl(baseURL, endpoint, apiUrlParameter, betaMode),
-    getLoginUrl: (endpoint: string) => buildLoginUrl(baseURL, endpoint, apiUrlParameter, betaMode),
+    getAIUrl: (endpoint: string) => buildAIUrl(baseURL, endpoint, apiUrlParameter, betaMode, serverDevMode),
+    getLoginUrl: (endpoint: string) => buildLoginUrl(baseURL, endpoint, apiUrlParameter, betaMode, serverDevMode),
   };
 }
 

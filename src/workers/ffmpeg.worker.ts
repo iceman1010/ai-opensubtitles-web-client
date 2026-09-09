@@ -4,6 +4,7 @@ import { toBlobURL } from '@ffmpeg/util';
 let ffmpeg: FFmpeg | null = null;
 
 async function loadFFmpeg() {
+  console.debug('[ffmpeg-worker] loadFFmpeg: start');
   ffmpeg = new FFmpeg();
 
   ffmpeg.on('progress', ({ progress }) => {
@@ -16,10 +17,17 @@ async function loadFFmpeg() {
 
   // Load WASM core from CDN
   const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
-  await ffmpeg.load({
-    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-  });
+  console.debug('[ffmpeg-worker] fetching core blob URLs from', baseURL);
+  const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
+  const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
+  console.debug('[ffmpeg-worker] blob URLs ready, calling ffmpeg.load()', { coreURL, wasmURL });
+  try {
+    await ffmpeg.load({ coreURL, wasmURL });
+  } catch (e) {
+    console.error('[ffmpeg-worker] ffmpeg.load() FAILED:', e, e instanceof Error ? e.stack : String(e));
+    throw e;
+  }
+  console.debug('[ffmpeg-worker] ffmpeg.load() OK');
 
   self.postMessage({ type: 'loaded' });
 }
@@ -47,7 +55,11 @@ async function extractAudio(
     outputName
   );
 
-  await ffmpeg.exec(args);
+  const ret = await ffmpeg.exec(args);
+  console.debug(`[ffmpeg-worker] exec exit code: ${ret} (input: ${inputName}, output: ${outputName})`);
+  if (ret !== 0) {
+    console.error(`[ffmpeg-worker] ffmpeg exec FAILED with code ${ret} — output file likely not created`);
+  }
   const data = await ffmpeg.readFile(outputName);
 
   // Clean up virtual FS
@@ -167,6 +179,14 @@ self.onmessage = async (e: MessageEvent) => {
         break;
     }
   } catch (error) {
-    self.postMessage({ type: 'error', error: (error as Error).message });
+    const detail = error instanceof Error
+      ? { kind: 'Error', message: error.message, name: error.name, stack: error.stack }
+      : { kind: typeof error, raw: String(error) };
+    console.error(`[ffmpeg-worker] cmd "${e.data.cmd}" FAILED:`, detail, error);
+    self.postMessage({
+      type: 'error',
+      error: detail.kind === 'Error' ? detail.message : detail.raw,
+      detail,
+    });
   }
 };

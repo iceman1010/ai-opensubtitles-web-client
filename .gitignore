@@ -8,3 +8,5 @@ tmp/
 new_site.md
 AGENTS.md
 .kilo/
+.playwright-mcp/
+tsconfig.tsbuildinfo
