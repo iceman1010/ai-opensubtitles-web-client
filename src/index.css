@@ -499,12 +499,21 @@ button {
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background-color: var(--bg-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
 }
 
 .options-container h3 {
-  margin: 0 0 16px 0;
+  width: 100%;
+  margin: 0;
   font-size: 16px;
   color: var(--text-primary);
+}
+
+.options-container .form-group {
+  flex: 1 1 240px;
+  margin-bottom: 0;
 }
 
 /* File info section */
@@ -519,6 +528,68 @@ button {
   margin: 0 0 8px 0;
   font-size: 15px;
   color: var(--text-primary);
+}
+
+.file-info-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.file-info-header h3 {
+  margin: 0;
+}
+
+.file-info-name {
+  word-break: break-all;
+  color: var(--text-primary);
+}
+
+.file-info-cost {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light);
+  font-size: 14px;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Two-column row for file info + language detection */
+.info-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 20px;
+}
+
+/* Full-width stacked column for content below the file selector */
+.content-stack {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.content-stack > .status-message {
+  margin-bottom: 0;
 }
 
 /* Action section */

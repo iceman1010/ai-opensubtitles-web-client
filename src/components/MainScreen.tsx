@@ -778,6 +778,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
         disabled={isProcessing || isDetectingLanguage}
       />
 
+      <div className="content-stack">
       {/* Welcome message when no file is selected */}
       {!selectedFile && (
         <div style={{
@@ -785,8 +786,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
           padding: '60px 20px',
           backgroundColor: 'var(--bg-secondary)',
           borderRadius: '12px',
-          border: '2px dashed var(--border-color)',
-          margin: '20px 0'
+          border: '2px dashed var(--border-color)'
         }}>
           <div style={{ fontSize: '48px', marginBottom: '20px' }}>
             <i className="fas fa-file-audio" style={{ color: 'var(--text-muted)' }}></i>
@@ -807,42 +807,47 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
         </div>
       )}
 
-      {selectedFile && fileType && (
+      {selectedFile && (
+        <div className="info-row">
+        {selectedFile && fileType && (
         <div className="file-info">
-          <h3>Selected File:</h3>
-          <p style={{ wordBreak: 'break-all', marginBottom: '8px' }}>
-            {selectedFile.name} ({formatFileSize(selectedFile.size)})
-          </p>
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-            <div>
+          <div className="file-info-header">
+            <h3>Selected File:</h3>
+            <span className="file-info-name">
+              {selectedFile.name} ({formatFileSize(selectedFile.size)})
+            </span>
+          </div>
+
+          <div className="chip-row">
+            <span className="chip">
               <strong>Type:</strong> {fileType === 'transcription' ? 'Audio/Video (Transcription)' : 'Subtitle (Translation)'}
-            </div>
+            </span>
 
             {isLoadingFileInfo ? (
-              <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Analyzing file...</div>
+              <span className="chip" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Analyzing file...</span>
             ) : fileInfo ? (
               <>
                 {fileInfo.duration !== undefined && (
-                  <div><strong>Duration:</strong> {formatDuration(fileInfo.duration)}</div>
+                  <span className="chip"><strong>Duration:</strong> {formatDuration(fileInfo.duration)}</span>
                 )}
                 {fileInfo.format && (
-                  <div><strong>Format:</strong> {fileInfo.format.toUpperCase()}</div>
+                  <span className="chip"><strong>Format:</strong> {fileInfo.format.toUpperCase()}</span>
                 )}
                 {fileInfo.hasAudio !== undefined && (
-                  <div>
+                  <span className="chip">
                     <strong>Audio:</strong> <i className={`fas ${fileInfo.hasAudio ? 'fa-check' : 'fa-times'}`} style={{ color: fileInfo.hasAudio ? 'var(--success-color)' : 'var(--danger-color)' }}></i>
                     {fileInfo.hasVideo !== undefined && (
-                      <span style={{ marginLeft: '10px' }}>
+                      <>
                         <strong>Video:</strong> <i className={`fas ${fileInfo.hasVideo ? 'fa-check' : 'fa-times'}`} style={{ color: fileInfo.hasVideo ? 'var(--success-color)' : 'var(--danger-color)' }}></i>
-                      </span>
+                      </>
                     )}
-                  </div>
+                  </span>
                 )}
                 {fileInfo.subtitleInfo && (
                   <>
-                    <div><strong>Characters:</strong> {formatCharacterCount(fileInfo.subtitleInfo.characterCount)}</div>
-                    <div><strong>Words:</strong> {formatCharacterCount(fileInfo.subtitleInfo.wordCount)}</div>
-                    <div><strong>Subtitle Lines:</strong> {formatCharacterCount(fileInfo.subtitleInfo.lineCount)}</div>
+                    <span className="chip"><strong>Characters:</strong> {formatCharacterCount(fileInfo.subtitleInfo.characterCount)}</span>
+                    <span className="chip"><strong>Words:</strong> {formatCharacterCount(fileInfo.subtitleInfo.wordCount)}</span>
+                    <span className="chip"><strong>Lines:</strong> {formatCharacterCount(fileInfo.subtitleInfo.lineCount)}</span>
                   </>
                 )}
               </>
@@ -850,7 +855,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
           </div>
 
           {fileType === 'translation' && fileInfo?.subtitleInfo && (
-            <div style={{ marginTop: '12px', padding: '8px 12px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px', fontSize: '14px' }}>
+            <div className="file-info-cost">
               {estimatedCost !== null ? (
                 estimatedCost === 0 ? (
                   <>
@@ -889,7 +894,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
           )}
 
           {fileType === 'transcription' && fileInfo?.duration && (
-            <div style={{ marginTop: '12px', padding: '8px 12px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '4px', fontSize: '14px' }}>
+            <div className="file-info-cost">
               {estimatedCost !== null ? (
                 estimatedCost === 0 ? (
                   <>
@@ -930,7 +935,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
       {/* Language Detection */}
       {selectedFile && (
         <div style={{ padding: '15px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: 'var(--bg-tertiary)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
             <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>Language Detection</h4>
             <button
               onClick={detectLanguageForFile}
@@ -940,28 +945,26 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
             >
               {isDetectingLanguage ? 'Detecting...' : 'Detect Language'}
             </button>
+            <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Optional — auto-fills the source language</span>
           </div>
-          <p style={{ margin: '0 0 15px 0', color: 'var(--text-secondary)', fontSize: '14px' }}>
-            Click "Detect Language" to automatically identify the source language.
-          </p>
 
           {showLanguageDetectionResult && detectedLanguage && (
-            <div style={{ padding: '12px', backgroundColor: 'rgba(40, 167, 69, 0.1)', border: '1px solid rgba(40, 167, 69, 0.3)', borderRadius: '4px' }}>
-              <h5 style={{ margin: '0 0 10px 0', color: 'var(--success-color)' }}>
+            <div style={{ marginTop: '12px', padding: '12px', backgroundColor: 'rgba(40, 167, 69, 0.1)', border: '1px solid rgba(40, 167, 69, 0.3)', borderRadius: '4px' }}>
+              <h5 style={{ margin: '0', color: 'var(--success-color)' }}>
                 Language Detected: {detectedLanguage.name}
               </h5>
-              <div style={{ display: 'flex', gap: '20px', marginBottom: '15px', fontSize: '14px' }}>
-                <div><strong>Native Name:</strong> {detectedLanguage.native}</div>
-                <div><strong>ISO Code:</strong> {detectedLanguage.ISO_639_1}</div>
+              <div className="chip-row">
+                <span className="chip"><strong>Native Name:</strong> {detectedLanguage.native}</span>
+                <span className="chip"><strong>ISO Code:</strong> {detectedLanguage.ISO_639_1}</span>
               </div>
 
               {isSubtitleFile(selectedFile.name) && (
-                <div style={{ marginBottom: '15px' }}>
-                  <h6 style={{ margin: '0 0 8px 0' }}>Compatible Translation Models ({compatibleModels.translation.length})</h6>
+                <div style={{ marginTop: '12px' }}>
+                  <h6 style={{ margin: '0 0 6px 0' }}>Compatible Translation Models ({compatibleModels.translation.length})</h6>
                   {compatibleModels.translation.length > 0 ? (
-                    <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px' }}>
-                      {compatibleModels.translation.map(m => <li key={m}>{m}</li>)}
-                    </ul>
+                    <div className="chip-row" style={{ marginTop: 0 }}>
+                      {compatibleModels.translation.map(m => <span key={m} className="chip">{m}</span>)}
+                    </div>
                   ) : (
                     <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>No translation models support this language</p>
                   )}
@@ -969,12 +972,12 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
               )}
 
               {isAudioVideoFile(selectedFile.name) && (
-                <div style={{ marginBottom: '15px' }}>
-                  <h6 style={{ margin: '0 0 8px 0' }}>Compatible Transcription Models ({compatibleModels.transcription.length})</h6>
+                <div style={{ marginTop: '12px' }}>
+                  <h6 style={{ margin: '0 0 6px 0' }}>Compatible Transcription Models ({compatibleModels.transcription.length})</h6>
                   {compatibleModels.transcription.length > 0 ? (
-                    <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px' }}>
-                      {compatibleModels.transcription.map(m => <li key={m}>{m}</li>)}
-                    </ul>
+                    <div className="chip-row" style={{ marginTop: 0 }}>
+                      {compatibleModels.transcription.map(m => <span key={m} className="chip">{m}</span>)}
+                    </div>
                   ) : (
                     <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>No transcription models support this language</p>
                   )}
@@ -982,6 +985,8 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
               )}
             </div>
           )}
+        </div>
+      )}
         </div>
       )}
 
@@ -1039,6 +1044,8 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
           </button>
         </div>
       )}
+
+      </div>
 
       <SubtitlePreviewModal
         isOpen={showPreview}

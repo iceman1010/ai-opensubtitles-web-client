@@ -81,6 +81,9 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
           background-color: var(--bg-tertiary) !important;
           color: var(--text-muted) !important;
           font-style: normal !important;
+        }
+
+        .smart-select option.smart-select-separator {
           text-align: center !important;
         }
       `}</style>
@@ -106,7 +109,7 @@ const SmartSelect: React.FC<SmartSelectProps> = ({
         ))}
 
         {incompatibleOptions.length > 0 && compatibleOptions.length > 0 && (
-          <option disabled style={{ backgroundColor: '#f0f0f0', color: '#666' }}>
+          <option disabled className="smart-select-separator" style={{ backgroundColor: '#f0f0f0', color: '#666' }}>
             ────────────────────
           </option>
         )}
