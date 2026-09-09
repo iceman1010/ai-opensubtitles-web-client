@@ -40,7 +40,7 @@ interface APIResponse<T = any> {
 interface CompletedTaskData {
   file_name: string;
   url: string;              // Download URL for transcript
-  character_count: number;
+  characters_count: number;
   unit_price: number;
   total_price: number;
   credits_left: number;
@@ -298,7 +298,7 @@ async checkTranscriptionStatus(
   data: {
     file_name: 'transcription_123.srt',
     url: 'https://api.ai.com/files/abc/def.srt',
-    character_count: 15420,
+    characters_count: 15420,
     unit_price: 0.0001,
     total_price: 1.54,
     credits_left: 985.46,

@@ -213,13 +213,28 @@ async checkTranslationStatus(
 ```typescript
 {
   status: 'COMPLETED',
+  correlation_id: '67eda18f52e11',
   data: {
     file_name: 'translated_es.srt',
     url: 'https://api.ai.com/files/xyz/def.srt',
-    character_count: 15420,
+    characters_count: 15420,
     unit_price: 0.00015,  // Translation typically costs more
     total_price: 2.31,
     credits_left: 982.69,
+    end_time: 1788199436,   // Unix timestamp when the job finished
+    duration: 11,           // Processing time in seconds
+    quality: {
+      valid: true,        // FINAL VERDICT — is the translation usable?
+      result: 'passed',   // 'passed' | 'failed' — mirrors valid
+      // ... full validator report, see "Quality Assessment Fields" below
+    },
+    readability: {
+      avg_cps: 12.4,
+      max_cps: 21.7,
+      // ... readability report, always sent
+    },
+    // quality_refund is ADDED only when quality.valid === false (failed
+    // translation → the user receives a credits refund)
     task: {
       login: 'user@example.com',
       loginid: '12345',
@@ -227,11 +242,114 @@ async checkTranslationStatus(
       api: 'DeepL',
       language: 'es',           // Target language
       translation: 'en',         // Source language
-      start_time: 1640995200
-    }
+      start_time: 1640995200,
+      function: 'translate'     // Always 'translate' for translation tasks
+    },
+    complete: 1788199436       // Unix timestamp of completion
   }
 }
 ```
+
+### Quality Assessment Fields
+
+Three extra fields appear on the COMPLETED result. They are produced by the [srt-translation-validator](https://github.com/iceman1010/srt-translation-validator) tool, which compares the original subtitle file against the translation.
+
+- **`quality`** — always sent. The validator's full JSON report. The most important value is `valid` (`true`/`false`): the final verdict of the validator. `true` means the translation is considered usable (no quality limit exceeded).
+
+```typescript
+quality: {
+  valid: true,                    // FINAL VERDICT: usable translation?
+  result: 'passed',               // 'passed' | 'failed' — mirrors valid
+  original: 'original.srt',
+  translation: 'translated_es.srt',
+  language: 'es',
+  timestamp_tolerance: 0.5,
+  defect_count: 2,
+  error_count: 0,
+  warning_count: 2,
+  defects_by_type: { merged_captions: 2 },
+  defects: [
+    {
+      type: 'merged_captions',
+      severity: 'warning',        // 'error' | 'warning'
+      message: 'Original captions #316-317 are merged into translation caption #316',
+      source_start_caption: 316,
+      source_end_caption: 317,
+      translation_caption: 316,
+      caption_count: 2
+    }
+  ],
+  quality: {
+    source_captions: 765,
+    aligned_pairs: 761,
+    partial_chars_analyzed: 18220,
+    ratios: {
+      content_loss: 0.0,
+      timestamp_drift: 0.0,
+      partial_translation: 0.0,      // advisory
+      merged: 0.0052,
+      verbatim_copy: 0.0026,
+      near_verbatim_copy: 0.0065,
+      unexpected_script: 0.0,
+      unaligned: 0.0052              // advisory
+    },
+    thresholds: {
+      content_loss: 0.01,
+      timestamp_drift: 0.02,
+      partial_translation: null,     // advisory, no limit
+      merged: 0.1,
+      verbatim_copy: 0.5,
+      near_verbatim_copy: 0.5,
+      unexpected_script: 0.0,
+      unaligned: null                // advisory, no limit
+    },
+    readability: {
+      avg_cps: 12.4,
+      max_cps: 21.7,
+      max_cps_caption: 183,
+      max_cpl: 42,
+      max_cpl_caption: 402
+    },
+    strict: false,
+    reasons: []                     // names every limit exceeded when valid === false
+  }
+}
+```
+
+When `valid` is `false`, `quality.quality.reasons` lists each exceeded limit (e.g. `"verbatim copy 70.52% exceeds the threshold 50.00%"`).
+
+- **`readability`** — always sent. The per-caption readability audit from `ReadabilityChecker::analyzeContent` (same validator). Measures reading speed (characters/second) and line length against subtitle guidelines. Purely advisory — it never fails the translation.
+
+```typescript
+readability: {
+  captions: 1834,        // Total captions
+  analyzed: 1812,        // Captions long enough to measure cps (cues < 0.2s excluded, cps null)
+  avg_cps: 12.4,
+  max_cps: 21.7,
+  max_cps_caption: 183,
+  max_cpl: 42,           // Longest line (characters)
+  max_cpl_caption: 402,
+  thresholds: { max_cps: 20.0, max_cpl: 42, max_lines: 2 },
+  problems_by_type: { reading_speed: 12, line_length: 3, line_count: 1 },
+  problems: [
+    {
+      caption: 1485,
+      severity: 'minor',            // 'critical' when a value exceeds 2x its limit
+      start_seconds: 5816.52,
+      end_seconds: 5817.755,
+      duration_seconds: 1.235,
+      chars: 60,
+      cps: 21.7,
+      text: '...',
+      issues: [
+        { type: 'reading_speed', value: 21.7, limit: 20.0, severity: 'minor' }
+      ]
+    }
+  ]
+}
+```
+
+- **`quality_refund`** — number (integer). **Only present when `quality.valid === false`.** A failed quality check means the translation is refunded; this field reports the number of credits returned to the user's account.
 
 **Response - ERROR**:
 ```typescript

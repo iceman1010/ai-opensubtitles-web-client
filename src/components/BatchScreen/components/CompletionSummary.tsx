@@ -9,6 +9,7 @@ interface CompletionSummaryProps {
   onDownload: (file: BatchFile) => void;
   onDownloadAll: () => void;
   onPreview: (file: BatchFile) => void;
+  onShowQualityReport: (file: BatchFile) => void;
   onClose: () => void;
 }
 
@@ -20,9 +21,12 @@ export const CompletionSummary: React.FC<CompletionSummaryProps> = ({
   onDownload,
   onDownloadAll,
   onPreview,
+  onShowQualityReport,
   onClose,
 }) => {
   if (!visible) return null;
+
+  const totalRefunded = completedFiles.reduce((sum, f) => sum + (f.qualityRefund || 0), 0);
 
   return (
     <div style={{
@@ -69,6 +73,19 @@ export const CompletionSummary: React.FC<CompletionSummaryProps> = ({
           </div>
         </div>
 
+        {totalRefunded > 0 && (
+          <div style={{
+            marginBottom: '20px', padding: '10px 14px',
+            backgroundColor: 'rgba(155, 89, 182, 0.1)',
+            border: '1px solid rgba(155, 89, 182, 0.3)',
+            borderRadius: '6px', fontSize: '13px', color: '#9b59b6',
+            display: 'flex', alignItems: 'center', gap: '8px',
+          }}>
+            <i className="fas fa-coins"></i>
+            {totalRefunded} credits refunded for failed quality checks
+          </div>
+        )}
+
         {completedFiles.length > 0 && (
           <div style={{ marginBottom: '20px' }}>
             <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', color: 'var(--text-primary)' }}>Output Files:</h3>
@@ -87,6 +104,31 @@ export const CompletionSummary: React.FC<CompletionSummaryProps> = ({
                     {file.outputFileName}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                    {(file.quality || file.readability) && (
+                      <div
+                        onClick={() => onShowQualityReport(file)}
+                        title={file.quality ? `Quality: ${file.quality.valid ? 'passed' : 'failed'}` : 'Readability report'}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: file.quality ? (file.quality.valid ? 'var(--success-color)' : 'var(--danger-color)') : 'var(--accent-color)',
+                          cursor: 'pointer',
+                          padding: '6px',
+                          borderRadius: '4px',
+                          fontSize: '13px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '28px',
+                          height: '28px',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--primary-color)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = file.quality ? (file.quality.valid ? 'var(--success-color)' : 'var(--danger-color)') : 'var(--accent-color)'; }}
+                      >
+                        <i className={file.quality ? (file.quality.valid ? 'fas fa-check-circle' : 'fas fa-times-circle') : 'fas fa-tachometer-alt'}></i>
+                      </div>
+                    )}
                     <div
                       onClick={() => onPreview(file)}
                       title="Preview subtitle"

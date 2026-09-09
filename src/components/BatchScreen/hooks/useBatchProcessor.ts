@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { QualityReport, ReadabilityReport } from '../../../services/api';
 import { BatchFile, BatchSettings, BatchScreenConfig, BatchStats } from '../types';
 import { isVideoFile, isAudioFile } from '../../../utils/fileTypeUtils';
 
@@ -9,6 +10,19 @@ interface BatchProcessorApi {
   checkTranslationStatus: (correlationId: string) => Promise<any>;
   downloadFile: (url: string) => Promise<any>;
 }
+
+interface ProcessResult {
+  content?: string;
+  quality?: QualityReport;
+  readability?: ReadabilityReport;
+  qualityRefund?: number;
+}
+
+const extractQuality = (data: any): Pick<ProcessResult, 'quality' | 'readability' | 'qualityRefund'> => ({
+  quality: data?.quality,
+  readability: data?.readability,
+  qualityRefund: typeof data?.quality_refund === 'number' ? data.quality_refund : undefined,
+});
 
 interface UseBatchProcessorOptions {
   config: BatchScreenConfig;
@@ -117,19 +131,16 @@ export const useBatchProcessor = ({
     try {
       setAppProcessing(true, `Processing file ${index + 1}/${total}: ${file.name}`);
 
-      let outputContent: string | undefined;
-      if (file.type === 'transcription') {
-        outputContent = await processTranscriptionFile(
+      const result: ProcessResult | undefined = file.type === 'transcription'
+        ? await processTranscriptionFile(
+          file, settings, updateFileCredits, generateOutputFileNameFn,
+          getTranslationLanguageNameSync, getTranscriptionLanguageNameSync,
+        )
+        : await processTranslationFile(
           file, settings, updateFileCredits, generateOutputFileNameFn,
           getTranslationLanguageNameSync, getTranscriptionLanguageNameSync,
         );
-      } else {
-        outputContent = await processTranslationFile(
-          file, settings, updateFileCredits, generateOutputFileNameFn,
-          getTranslationLanguageNameSync, getTranscriptionLanguageNameSync,
-        );
-      }
-      return outputContent;
+      return result;
     } catch (error: any) {
       const { logger } = await import('../../../utils/errorLogger');
       logger.error('BatchScreen', `Failed to process file: ${file.name}`, error);
@@ -154,7 +165,7 @@ export const useBatchProcessor = ({
     ) => string,
     getTranslationLanguageNameSync: (model: string, code: string) => string | undefined,
     getTranscriptionLanguageNameSync: (model: string, code: string) => string | undefined,
-  ) => {
+  ): Promise<ProcessResult> => {
     let fileToProcess: File | Blob = file.file;
     const updateProgress = (pct: number) => {
       // progress updates are handled via setQueue in the main component
@@ -238,9 +249,11 @@ export const useBatchProcessor = ({
         const dl = await api.downloadFile(translationResult.data.url);
         if (dl.success && dl.content) outputContent = dl.content;
       }
+
+      return { content: outputContent, ...extractQuality(translationResult.data) };
     }
 
-    return outputContent;
+    return { content: outputContent };
   };
 
   const processTranslationFile = async (
@@ -260,7 +273,7 @@ export const useBatchProcessor = ({
     ) => string,
     getTranslationLanguageNameSync: (model: string, code: string) => string | undefined,
     getTranscriptionLanguageNameSync: (model: string, code: string) => string | undefined,
-  ) => {
+  ): Promise<ProcessResult> => {
     setAppProcessing(true, `Initiating translation for ${file.name}...`);
 
     const initResult = await api.initiateTranslation(file.file, {
@@ -295,7 +308,7 @@ export const useBatchProcessor = ({
       if (dl.success && dl.content) outputContent = dl.content;
     }
 
-    return outputContent;
+    return { content: outputContent, ...extractQuality(translationResult.data) };
   };
 
   const updateBatchSettingsRef = useCallback((settings: BatchSettings) => {
@@ -354,14 +367,14 @@ export const useBatchProcessor = ({
         ));
 
         try {
-          const outputContent = await processFile(
+          const result = await processFile(
             file, i, totalFiles, updateFileCredits,
             generateOutputFileNameFn,
             getTranslationLanguageNameSync,
             getTranscriptionLanguageNameSync,
           );
 
-          if (outputContent) {
+          if (result?.content) {
             const settings = batchSettingsRef.current!;
             const enableChaining = settings.workflowMode === 'transcribe-and-translate';
             const type = enableChaining ? 'translation' : 'transcription';
@@ -381,7 +394,11 @@ export const useBatchProcessor = ({
             );
 
             setQueue(prev => prev.map(f =>
-              f.id === file.id ? { ...f, status: 'completed' as const, progress: 100, outputContent, outputFileName } : f,
+              f.id === file.id ? {
+                ...f, status: 'completed' as const, progress: 100,
+                outputContent: result.content, outputFileName,
+                quality: result.quality, readability: result.readability, qualityRefund: result.qualityRefund,
+              } : f,
             ));
             successCount++;
           }

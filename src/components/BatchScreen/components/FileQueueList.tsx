@@ -13,6 +13,7 @@ interface FileQueueListProps {
   onMoveDown: (index: number) => void;
   onClear: () => void;
   onDownload: (file: BatchFile) => void;
+  onShowQualityReport: (file: BatchFile) => void;
   onSourceLanguageChange: (fileId: string, lang: string) => void;
   batchSettings: BatchSettings;
   contextTranscriptionInfo: any;
@@ -29,6 +30,7 @@ export const FileQueueList: React.FC<FileQueueListProps> = ({
   onMoveDown,
   onClear,
   onDownload,
+  onShowQualityReport,
   onSourceLanguageChange,
   batchSettings,
   contextTranscriptionInfo,
@@ -107,6 +109,16 @@ export const FileQueueList: React.FC<FileQueueListProps> = ({
                 {file.detectedLanguage && ` | Language: ${file.detectedLanguage.native || file.detectedLanguage.name}`}
                 {file.progress !== undefined && file.status === 'processing' && ` | Progress: ${file.progress}%`}
                 {file.creditsUsed !== undefined && file.creditsUsed > 0 && ` | Credits: ${file.creditsUsed}`}
+                {file.quality && (
+                  <>
+                    {' | '}Quality: <span style={{ color: file.quality.valid ? 'var(--success-color)' : 'var(--danger-color)', fontWeight: '600' }}>
+                      {file.quality.valid ? 'Passed' : 'Failed'}
+                    </span>
+                    {typeof file.qualityRefund === 'number' && file.qualityRefund > 0 && (
+                      <span style={{ color: '#9b59b6' }}> (refunded {file.qualityRefund})</span>
+                    )}
+                  </>
+                )}
                 {' | '}{formatFileSize(file.file.size)}
               </div>
 
@@ -173,6 +185,22 @@ export const FileQueueList: React.FC<FileQueueListProps> = ({
                     ))}
                   </select>
                 </div>
+              )}
+
+              {file.status === 'completed' && (file.quality || file.readability) && (
+                <button
+                  onClick={() => onShowQualityReport(file)}
+                  style={{
+                    marginTop: '6px', padding: '4px 10px', fontSize: '11px',
+                    backgroundColor: 'transparent',
+                    color: file.quality ? (file.quality.valid ? 'var(--success-color)' : 'var(--danger-color)') : 'var(--accent-color)',
+                    border: `1px solid ${file.quality ? (file.quality.valid ? 'var(--success-color)' : 'var(--danger-color)') : 'var(--accent-color)'}`,
+                    borderRadius: '3px', cursor: 'pointer',
+                  }}
+                >
+                  <i className={file.quality ? (file.quality.valid ? 'fas fa-check-circle' : 'fas fa-times-circle') : 'fas fa-tachometer-alt'} style={{ marginRight: '4px' }}></i>
+                  Quality Report
+                </button>
               )}
 
               {file.status === 'completed' && file.outputContent && (

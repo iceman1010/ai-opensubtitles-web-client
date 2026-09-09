@@ -6,6 +6,7 @@ import { useAPI } from '../../contexts/APIContext';
 import { saveTextFile } from '../../hooks/useFileHandler';
 import * as fileFormatsConfig from '../../config/fileFormats.json';
 import SubtitlePreviewModal from '../SubtitlePreviewModal';
+import QualityReportModal from '../QualityReportModal';
 import { BatchScreenProps, BatchFile, BatchSettings } from './types';
 import { getLanguagesForModel, autoSelectSourceLanguage, computeEstimatedCost, computeQueueAnalysis, computeUiState, generateOutputFileName, validateLanguageSelection, findModelPrice } from './utils';
 import { useQueueManager } from './hooks/useQueueManager';
@@ -36,6 +37,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
   const [languagesLoaded, setLanguagesLoaded] = useState(false);
   const [previewContent, setPreviewContent] = useState<string | null>(null);
   const [previewFileName, setPreviewFileName] = useState<string>('');
+  const [qualityReportFile, setQualityReportFile] = useState<BatchFile | null>(null);
   const [servicesInfo, setServicesInfo] = useState<ServicesInfo | null>(null);
 
   const queueManager = useQueueManager({
@@ -214,6 +216,14 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
     }
   }, [previewContent, previewFileName]);
 
+  const handleShowQualityReport = useCallback((file: BatchFile) => {
+    setQualityReportFile(file);
+  }, []);
+
+  const handleQualityReportClose = useCallback(() => {
+    setQualityReportFile(null);
+  }, []);
+
   const downloadSingleFile = useCallback(async (file: BatchFile) => {
     if (file.outputContent && file.outputFileName) {
       saveTextFile(file.outputContent, file.outputFileName);
@@ -315,6 +325,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
         onMoveDown={queueManager.moveFileDown}
         onClear={queueManager.clearQueue}
         onDownload={downloadSingleFile}
+        onShowQualityReport={handleShowQualityReport}
         onSourceLanguageChange={queueManager.handleSourceLanguageChange}
         batchSettings={batchSettings}
         contextTranscriptionInfo={api.transcriptionInfo}
@@ -367,6 +378,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
         onDownload={downloadSingleFile}
         onDownloadAll={downloadAllFiles}
         onPreview={handlePreviewFile}
+        onShowQualityReport={handleShowQualityReport}
         onClose={() => processor.setShowCompletionSummary(false)}
       />
 
@@ -376,6 +388,15 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
         content={previewContent || ''}
         fileName={previewFileName}
         onDownload={handlePreviewDownload}
+      />
+
+      <QualityReportModal
+        isOpen={qualityReportFile !== null}
+        onClose={handleQualityReportClose}
+        quality={qualityReportFile?.quality}
+        readability={qualityReportFile?.readability}
+        qualityRefund={qualityReportFile?.qualityRefund}
+        fileName={qualityReportFile?.outputFileName}
       />
     </div>
   );

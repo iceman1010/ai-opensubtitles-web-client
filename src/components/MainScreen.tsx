@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import FileSelector from './FileSelector';
 import { getProcessingType } from '../config/fileFormats';
-import { LanguageInfo, TranscriptionInfo, TranslationInfo, DetectedLanguage, LanguageDetectionResult, APIResponse, ServicesInfo, ServiceModel } from '../services/api';
+import { LanguageInfo, TranscriptionInfo, TranslationInfo, DetectedLanguage, LanguageDetectionResult, APIResponse, ServicesInfo, ServiceModel, QualityReport, ReadabilityReport } from '../services/api';
 import { logger } from '../utils/errorLogger';
 import { parseSubtitleFile, formatDuration, formatCharacterCount, ParsedSubtitle } from '../utils/subtitleParser';
 import ImprovedTranscriptionOptions from './ImprovedTranscriptionOptions';
@@ -13,7 +13,15 @@ import { readTextFile, saveTextFile, formatFileSize } from '../hooks/useFileHand
 import appConfig from '../config/appConfig.json';
 import * as fileFormatsConfig from '../config/fileFormats.json';
 import SubtitlePreviewModal from './SubtitlePreviewModal';
+import QualityReportModal from './QualityReportModal';
 import { isVideoFile, isAudioFile, isSubtitleFile, isAudioVideoFile } from '../utils/fileTypeUtils';
+
+interface QualitySummary {
+  quality?: QualityReport;
+  readability?: ReadabilityReport;
+  qualityRefund?: number;
+  fileName?: string;
+}
 
 interface MainScreenProps {
   config: {
@@ -62,6 +70,8 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewContent, setPreviewContent] = useState<string>('');
+  const [qualitySummary, setQualitySummary] = useState<QualitySummary | null>(null);
+  const [showQualityReport, setShowQualityReport] = useState(false);
   const [translationOptions, setTranslationOptions] = useState({
     sourceLanguage: 'auto',
     destinationLanguage: '',
@@ -531,6 +541,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
     const processingType = getProcessingType(file.name);
     setFileType(processingType === 'unknown' ? null : processingType);
     setStatusMessage(null);
+    setQualitySummary(null);
 
     setDetectedLanguage(null);
     setShowLanguageDetectionResult(false);
@@ -559,6 +570,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
     setIsProcessing(true);
     setAppProcessing(true, fileType === 'transcription' ? 'Transcribing...' : 'Translating...');
     setStatusMessage({ type: 'info', message: 'Processing file...' });
+    setQualitySummary(null);
 
     let isPollingMode = false;
 
@@ -652,12 +664,24 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
     if (typeof result.data.total_price === 'number' && result.data.total_price > 0) {
       message += ` (${result.data.total_price} credits used)`;
     }
+    if (typeof result.data.quality_refund === 'number' && result.data.quality_refund > 0) {
+      message += ` — quality check failed, ${result.data.quality_refund} credits refunded`;
+    }
     setStatusMessage({ type: 'success', message });
 
     if (typeof result.data.credits_left === 'number') {
       const usedCredits = result.data.total_price || 0;
       onCreditsUpdate?.({ used: usedCredits, remaining: result.data.credits_left });
       triggerCreditsAnimation();
+    }
+
+    if (fileType === 'translation' && (result.data.quality || result.data.readability)) {
+      setQualitySummary({
+        quality: result.data.quality,
+        readability: result.data.readability,
+        qualityRefund: typeof result.data.quality_refund === 'number' ? result.data.quality_refund : undefined,
+        fileName: result.data.file_name,
+      });
     }
 
     if (result.data.url) {
@@ -1021,6 +1045,55 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
         </div>
       )}
 
+      {qualitySummary && (
+        <div style={{
+          padding: '14px 16px',
+          border: '1px solid var(--border-color)',
+          borderRadius: '6px',
+          backgroundColor: 'var(--bg-secondary)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          flexWrap: 'wrap',
+        }}>
+          {qualitySummary.quality ? (
+            <span style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              fontSize: '14px', fontWeight: '600',
+              color: qualitySummary.quality.valid ? 'var(--success-color)' : 'var(--danger-color)',
+            }}>
+              <i className={qualitySummary.quality.valid ? 'fas fa-check-circle' : 'fas fa-times-circle'}></i>
+              Quality: {qualitySummary.quality.valid ? 'Passed' : 'Failed'}
+            </span>
+          ) : (
+            <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+              <i className="fas fa-tachometer-alt" style={{ marginRight: '6px' }}></i>
+              Readability
+            </span>
+          )}
+          {typeof qualitySummary.qualityRefund === 'number' && qualitySummary.qualityRefund > 0 && (
+            <span className="chip" style={{ color: '#9b59b6' }}>
+              <strong>{qualitySummary.qualityRefund} credits refunded</strong>
+            </span>
+          )}
+          {qualitySummary.quality && qualitySummary.quality.warning_count > 0 && (
+            <span className="chip"><strong>Warnings:</strong> {qualitySummary.quality.warning_count}</span>
+          )}
+          {qualitySummary.readability && (
+            <span className="chip"><strong>Avg speed:</strong> {qualitySummary.readability.avg_cps.toFixed(1)} cps</span>
+          )}
+          <div style={{ flex: 1 }}></div>
+          <button
+            onClick={() => setShowQualityReport(true)}
+            className="btn-secondary"
+            style={{ padding: '8px 16px', fontSize: '13px' }}
+          >
+            <i className="fas fa-clipboard-check" style={{ marginRight: '6px' }}></i>
+            View Quality Report
+          </button>
+        </div>
+      )}
+
       {/* FFmpeg progress bar */}
       {ffmpegProgress !== null && (
         <div className="progress-bar">
@@ -1053,6 +1126,15 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
         content={previewContent}
         fileName={generateResultFilename() || selectedFile?.name || ''}
         onDownload={() => handleSaveFile(previewContent)}
+      />
+
+      <QualityReportModal
+        isOpen={showQualityReport}
+        onClose={() => setShowQualityReport(false)}
+        quality={qualitySummary?.quality}
+        readability={qualitySummary?.readability}
+        qualityRefund={qualitySummary?.qualityRefund}
+        fileName={qualitySummary?.fileName}
       />
 
       {/* Credit Warning Modal */}

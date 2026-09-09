@@ -1,4 +1,4 @@
-import { LanguageInfo, DetectedLanguage, ServicesInfo } from '../../services/api';
+import { LanguageInfo, DetectedLanguage, ServicesInfo, QualityReport, ReadabilityReport } from '../../services/api';
 
 export type { LanguageInfo, DetectedLanguage, ServicesInfo };
 
@@ -17,6 +17,9 @@ export interface BatchFile {
   creditsUsed?: number;
   duration?: number;
   characterCount?: number;
+  quality?: QualityReport;
+  readability?: ReadabilityReport;
+  qualityRefund?: number;
 }
 
 export type WorkflowMode = 'transcribe-only' | 'transcribe-and-translate';
