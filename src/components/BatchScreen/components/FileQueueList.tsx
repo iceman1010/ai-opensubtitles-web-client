@@ -198,7 +198,7 @@ export const FileQueueList: React.FC<FileQueueListProps> = ({
                     borderRadius: '3px', cursor: 'pointer',
                   }}
                 >
-                  <i className={file.quality ? (file.quality.valid ? 'fas fa-check-circle' : 'fas fa-times-circle') : 'fas fa-tachometer-alt'} style={{ marginRight: '4px' }}></i>
+                  <i className={file.quality ? (file.quality.valid ? 'fas fa-check-circle' : 'fas fa-times-circle') : 'fas fa-eye'} style={{ marginRight: '4px' }}></i>
                   Quality Report
                 </button>
               )}

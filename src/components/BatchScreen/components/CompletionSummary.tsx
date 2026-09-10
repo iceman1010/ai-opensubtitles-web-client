@@ -126,7 +126,7 @@ export const CompletionSummary: React.FC<CompletionSummaryProps> = ({
                         onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--primary-color)'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.color = file.quality ? (file.quality.valid ? 'var(--success-color)' : 'var(--danger-color)') : 'var(--accent-color)'; }}
                       >
-                        <i className={file.quality ? (file.quality.valid ? 'fas fa-check-circle' : 'fas fa-times-circle') : 'fas fa-tachometer-alt'}></i>
+                        <i className={file.quality ? (file.quality.valid ? 'fas fa-check-circle' : 'fas fa-times-circle') : 'fas fa-eye'}></i>
                       </div>
                     )}
                     <div

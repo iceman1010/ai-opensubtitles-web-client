@@ -1067,7 +1067,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
             </span>
           ) : (
             <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
-              <i className="fas fa-tachometer-alt" style={{ marginRight: '6px' }}></i>
+              <i className="fas fa-eye" style={{ marginRight: '6px' }}></i>
               Readability
             </span>
           )}

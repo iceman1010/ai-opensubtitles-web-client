@@ -307,8 +307,8 @@ function QualityReportModal({ isOpen, onClose, quality, readability, qualityRefu
             gap: '8px',
             overflow: 'hidden',
           }}>
-            <i className="fas fa-clipboard-check" style={{ color: verdictColor, flexShrink: 0 }}></i>
-            <span>Translation Quality Report</span>
+            <i className="fas fa-clipboard-check" style={{ color: 'var(--primary-color)', flexShrink: 0 }}></i>
+            <span>Subtitle Quality Report</span>
             {fileName && (
               <span style={{ fontSize: '12px', fontWeight: '400', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 &middot; {fileName}
