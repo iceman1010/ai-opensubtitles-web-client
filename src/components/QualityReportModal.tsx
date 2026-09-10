@@ -522,7 +522,7 @@ function QualityReportModal({ isOpen, onClose, quality, readability, qualityRefu
                 <span>
                   Limits: {formatValue(readability?.thresholds?.max_cps)} cps, {formatValue(readability?.thresholds?.max_cpl)} chars/line, {formatValue(readability?.thresholds?.max_lines)} lines
                 </span>
-                {Object.entries(readability!.problems_by_type || {}).map(([type, count]) => (
+                {Object.entries(readability?.problems_by_type || {}).map(([type, count]) => (
                   <span key={type} style={{
                     padding: '2px 8px', borderRadius: '4px',
                     backgroundColor: 'var(--bg-tertiary)', fontSize: '11px',
