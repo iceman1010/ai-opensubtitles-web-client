@@ -253,7 +253,7 @@ export const useBatchProcessor = ({
       return { content: outputContent, ...extractQuality(translationResult.data) };
     }
 
-    return { content: outputContent };
+    return { content: outputContent, ...extractQuality(transcriptionResult.data) };
   };
 
   const processTranslationFile = async (

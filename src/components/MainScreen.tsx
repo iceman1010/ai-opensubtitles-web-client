@@ -675,7 +675,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
       triggerCreditsAnimation();
     }
 
-    if (fileType === 'translation' && (result.data.quality || result.data.readability)) {
+    if (result.data.quality || result.data.readability) {
       setQualitySummary({
         quality: result.data.quality,
         readability: result.data.readability,
@@ -1079,7 +1079,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
           {qualitySummary.quality && qualitySummary.quality.warning_count > 0 && (
             <span className="chip"><strong>Warnings:</strong> {qualitySummary.quality.warning_count}</span>
           )}
-          {qualitySummary.readability && (
+          {qualitySummary.readability && typeof qualitySummary.readability.avg_cps === 'number' && (
             <span className="chip"><strong>Avg speed:</strong> {qualitySummary.readability.avg_cps.toFixed(1)} cps</span>
           )}
           <div style={{ flex: 1 }}></div>
