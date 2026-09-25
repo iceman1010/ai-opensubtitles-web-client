@@ -123,8 +123,10 @@ async function getMediaInfo(fileData: Uint8Array, inputName: string) {
   ffmpeg.on('log', logHandler);
 
   try {
-    // Run ffmpeg with no output — it will error but logs contain media info
-    await ffmpeg.exec(['-i', inputName, '-f', 'null', '-']);
+    // Run ffmpeg with no output — it will error but logs contain media info.
+    // Duration/stream info comes from the input header, so decoding is capped
+    // (-t 0.1) and video decode skipped (-vn) to keep the WASM heap small.
+    await ffmpeg.exec(['-i', inputName, '-t', '0.1', '-vn', '-f', 'null', '-']);
   } catch {
     // Expected: ffmpeg exits with error when no valid output
   }
