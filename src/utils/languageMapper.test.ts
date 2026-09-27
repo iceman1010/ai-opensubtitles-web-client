@@ -5,6 +5,7 @@ import {
   getBestVariantForApi,
   getConsolidatedLanguageById,
   getConsolidatedLanguageByCode,
+  resolveLanguageForApi,
   ConsolidatedLanguage,
 } from './languageMapper';
 
@@ -125,5 +126,43 @@ describe('getConsolidatedLanguageByCode', () => {
 
   it('returns undefined for unknown code', () => {
     expect(getConsolidatedLanguageByCode(langs, 'xx')).toBeUndefined();
+  });
+});
+
+describe('resolveLanguageForApi', () => {
+  const bareCodes = [makeLang('en', 'English'), makeLang('ja', 'Japanese'), makeLang('de', 'German')];
+  const localeCodes = [makeLang('ja-JP', 'Japanese'), makeLang('en-US', 'English (US)')];
+
+  it('keeps codes that exist in the API list unchanged', () => {
+    expect(resolveLanguageForApi('ja', bareCodes)).toBe('ja');
+  });
+
+  it('remaps a regional code to the API base code', () => {
+    expect(resolveLanguageForApi('ja-JP', bareCodes)).toBe('ja');
+  });
+
+  it('remaps a base code to the API regional code', () => {
+    expect(resolveLanguageForApi('ja', localeCodes)).toBe('ja-JP');
+  });
+
+  it('remaps underscore variant formats', () => {
+    expect(resolveLanguageForApi('en_uk', [makeLang('en', 'English')])).toBe('en');
+  });
+
+  it('falls back to auto when the language is not supported', () => {
+    expect(resolveLanguageForApi('fr', localeCodes)).toBe('auto');
+  });
+
+  it('passes auto through untouched', () => {
+    expect(resolveLanguageForApi('auto', bareCodes)).toBe('auto');
+  });
+
+  it('returns auto when no candidate exists', () => {
+    expect(resolveLanguageForApi(undefined, bareCodes)).toBe('auto');
+  });
+
+  it('keeps the candidate when no language list is available', () => {
+    expect(resolveLanguageForApi('ja-JP', undefined)).toBe('ja-JP');
+    expect(resolveLanguageForApi('ja-JP', [])).toBe('ja-JP');
   });
 });

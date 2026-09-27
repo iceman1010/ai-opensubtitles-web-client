@@ -79,6 +79,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
       checkTranslationStatus: api.checkTranslationStatus,
       downloadFile: api.downloadFile,
     },
+    getTranscriptionLanguages: (model: string) => getLanguagesForModel(api.transcriptionInfo?.languages, model),
+    getTranslationLanguages: (model: string) => getLanguagesForModel(api.translationInfo?.languages, model),
   });
 
   const { setQueue } = queueManager;

@@ -224,6 +224,22 @@ export function getBestVariantForApi(
 }
 
 /**
+ * Validates a language code against an API's supported list and remaps it
+ * to that API's own code format when possible (e.g. 'ja-JP' -> 'ja',
+ * 'ja' -> 'ja-JP'). Falls back to 'auto' when the language is unsupported.
+ */
+export function resolveLanguageForApi(
+  candidate: string | undefined,
+  apiLanguages: LanguageInfo[] | undefined
+): string {
+  if (!candidate || candidate === 'auto' || !apiLanguages?.length) return candidate || 'auto';
+  if (apiLanguages.some(l => l.language_code === candidate)) return candidate;
+  const base = candidate.split(/[-_]/)[0].toLowerCase();
+  const remapped = apiLanguages.find(l => l.language_code.toLowerCase().split(/[-_]/)[0] === base);
+  return remapped?.language_code || 'auto';
+}
+
+/**
  * Gets consolidated language by ID
  */
 export function getConsolidatedLanguageById(

@@ -451,10 +451,13 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
     try {
       const result = await getTranslationApisForLanguage(sourceLanguage, targetLanguage);
       if (result.success && result.data) {
-        setAvailableTranslationApis(result.data);
-        if (!result.data.includes(translationOptions.model) && result.data.length > 0) {
-          setTranslationOptions(prev => ({ ...prev, model: result.data![0] }));
-        }
+        const models = result.data;
+        setAvailableTranslationApis(models);
+        setTranslationOptions(prev =>
+          !models.includes(prev.model) && models.length > 0
+            ? { ...prev, model: models[0] }
+            : prev
+        );
       }
     } catch (error) {
       logger.error('MainScreen', 'Failed to load models for language pair:', error);
@@ -469,10 +472,12 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
   };
 
   const handleTranslationLanguageChange = (field: 'sourceLanguage' | 'destinationLanguage', newLanguage: string) => {
-    const updatedOptions = { ...translationOptions, [field]: newLanguage };
-    setTranslationOptions(updatedOptions);
-    if (updatedOptions.sourceLanguage && updatedOptions.destinationLanguage) {
-      loadModelsForTranslationLanguage(updatedOptions.sourceLanguage, updatedOptions.destinationLanguage);
+    setTranslationOptions(prev => ({ ...prev, [field]: newLanguage }));
+
+    const updatedSource = field === 'sourceLanguage' ? newLanguage : translationOptions.sourceLanguage;
+    const updatedDestination = field === 'destinationLanguage' ? newLanguage : translationOptions.destinationLanguage;
+    if (updatedSource && updatedDestination) {
+      loadModelsForTranslationLanguage(updatedSource, updatedDestination);
     }
   };
 

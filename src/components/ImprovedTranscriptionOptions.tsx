@@ -89,9 +89,15 @@ const ImprovedTranscriptionOptions: React.FC<ImprovedTranscriptionOptionsProps> 
 
   const handleModelChange = (newModel: string) => {
     setOptions(prev => ({ ...prev, model: newModel }));
-    if (currentConsolidated) {
+
+    if (currentConsolidated && currentConsolidated.id !== 'auto-detect') {
       const compatibleApis = compatibilityMatrix[currentConsolidated.id] || [];
-      if (!compatibleApis.includes(newModel)) {
+      if (compatibleApis.includes(newModel)) {
+        const bestVariant = getBestVariantForApi(currentConsolidated, newModel);
+        if (bestVariant) {
+          setOptions(prev => ({ ...prev, language: bestVariant }));
+        }
+      } else {
         setOptions(prev => ({ ...prev, language: 'auto' }));
       }
     }

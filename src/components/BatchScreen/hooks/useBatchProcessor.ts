@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { QualityReport, ReadabilityReport } from '../../../services/api';
+import { QualityReport, ReadabilityReport, LanguageInfo } from '../../../services/api';
 import { BatchFile, BatchSettings, BatchScreenConfig, BatchStats } from '../types';
 import { isVideoFile, isAudioFile } from '../../../utils/fileTypeUtils';
+import { resolveLanguageForApi } from '../../../utils/languageMapper';
 
 interface BatchProcessorApi {
   initiateTranscription: (file: File | Blob, options: any) => Promise<any>;
@@ -28,12 +29,16 @@ interface UseBatchProcessorOptions {
   config: BatchScreenConfig;
   setAppProcessing: (processing: boolean, task?: string) => void;
   api: BatchProcessorApi;
+  getTranscriptionLanguages: (model: string) => LanguageInfo[];
+  getTranslationLanguages: (model: string) => LanguageInfo[];
 }
 
 export const useBatchProcessor = ({
   config,
   setAppProcessing,
   api,
+  getTranscriptionLanguages,
+  getTranslationLanguages,
 }: UseBatchProcessorOptions) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentFileIndex, setCurrentFileIndex] = useState(-1);
@@ -146,7 +151,7 @@ export const useBatchProcessor = ({
       logger.error('BatchScreen', `Failed to process file: ${file.name}`, error);
       if (settings.abortOnError) throw error;
     }
-  }, [setAppProcessing, api.downloadFile, config.defaultFilenameFormat, pollForCompletion]);
+  }, [setAppProcessing, api.downloadFile, config.defaultFilenameFormat, pollForCompletion, getTranscriptionLanguages, getTranslationLanguages]);
 
   const processTranscriptionFile = async (
     file: BatchFile,
@@ -187,8 +192,13 @@ export const useBatchProcessor = ({
 
     setAppProcessing(true, `Initiating transcription for ${file.name}...`);
 
+    const transcriptionApiLanguages = getTranscriptionLanguages(settings.transcriptionModel);
+
     const initResult = await api.initiateTranscription(fileToProcess, {
-      language: file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1 || 'auto',
+      language: resolveLanguageForApi(
+        file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1,
+        transcriptionApiLanguages,
+      ),
       api: settings.transcriptionModel,
       returnContent: true,
     });
@@ -221,8 +231,13 @@ export const useBatchProcessor = ({
 
       const subtitleBlob = new Blob([outputContent], { type: 'text/plain' });
 
+      const translationApiLanguages = getTranslationLanguages(settings.translationModel);
+
       const translationInitResult = await api.initiateTranslation(subtitleBlob, {
-        translateFrom: file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1 || 'auto',
+        translateFrom: resolveLanguageForApi(
+          file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1,
+          translationApiLanguages,
+        ),
         translateTo: settings.targetLanguage,
         api: settings.translationModel,
         returnContent: true,
@@ -276,8 +291,13 @@ export const useBatchProcessor = ({
   ): Promise<ProcessResult> => {
     setAppProcessing(true, `Initiating translation for ${file.name}...`);
 
+    const standaloneTranslationApiLanguages = getTranslationLanguages(settings.translationModel);
+
     const initResult = await api.initiateTranslation(file.file, {
-      translateFrom: file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1 || 'auto',
+      translateFrom: resolveLanguageForApi(
+        file.selectedSourceLanguage || file.detectedLanguage?.ISO_639_1,
+        standaloneTranslationApiLanguages,
+      ),
       translateTo: settings.targetLanguage,
       api: settings.translationModel,
       returnContent: true,
