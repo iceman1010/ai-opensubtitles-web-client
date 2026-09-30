@@ -129,6 +129,7 @@ function AppContent({
     error: apiError,
     login,
     autoLogin,
+    tokenLogin,
     reconnect,
     sessionExpired,
     updateCredits,
@@ -191,8 +192,10 @@ function AppContent({
   useEffect(() => {
     if (hasCredentials) {
       autoLogin();
+    } else {
+      tokenLogin();
     }
-  }, [hasCredentials, autoLogin]);
+  }, [hasCredentials, autoLogin, tokenLogin]);
 
   // Track API activity for logo glow and status bar
   useEffect(() => {

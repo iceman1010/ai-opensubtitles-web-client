@@ -11,6 +11,7 @@ import {
 import { storageService, AppConfig } from '../services/storageService';
 import { logger } from '../utils/errorLogger';
 import CacheManager from '../services/cache';
+import appConfig from '../config/appConfig.json';
 
 // ── Context shape ────────────────────────────────────────────
 interface APIContextType {
@@ -28,6 +29,7 @@ interface APIContextType {
   login: (username: string, password: string, apiKey: string, rememberMe?: boolean) => Promise<boolean>;
   logout: () => void;
   autoLogin: () => Promise<boolean>;
+  tokenLogin: () => Promise<boolean>;
   reconnect: () => Promise<boolean>;
   sessionExpired: boolean;
   refreshCredits: () => Promise<void>;
@@ -247,6 +249,55 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
     apiRef.current.setServerDevMode(!!cfg.serverDevMode);
 
     return performLogin(cfg.username, cfg.password, cfg.apiKey, true);
+  }, []);
+
+  // ── Token-only login (handoff from main site; no stored credentials) ──
+  const tokenLogin = useCallback(async (): Promise<boolean> => {
+    if (authAttemptedRef.current || authPromiseRef.current) {
+      return false;
+    }
+    const cfg = storageService.getConfig();
+    if (!storageService.getValidToken()) return false;
+    authAttemptedRef.current = true;
+
+    const promise = (async () => {
+      setIsAuthenticating(true);
+      setIsLoading(true);
+      setError(null);
+      try {
+        if (cfg.apiBaseUrl) apiRef.current.setBaseUrl(cfg.apiBaseUrl);
+        if (cfg.apiUrlParameter) apiRef.current.setApiUrlParameter(cfg.apiUrlParameter);
+        apiRef.current.setBetaMode(!!cfg.betaMode);
+        apiRef.current.setServerDevMode(!!cfg.serverDevMode);
+        apiRef.current.setApiKey(cfg.apiKey || appConfig.publicApiKey);
+        CacheManager.setUser(cfg.username || '');
+
+        const hasCached = await apiRef.current.loadCachedToken();
+        if (!hasCached) return false;
+
+        const creditsResult = await apiRef.current.getCredits();
+        if (creditsResult.success) {
+          setIsAuthenticated(true);
+          setCredits({ used: 0, remaining: creditsResult.credits || 0 });
+          await loadAPIInfo(apiRef.current);
+          logger.info('APIContext', 'Token-only login (site handoff)');
+          return true;
+        }
+        await apiRef.current.clearCachedToken();
+        setError('Session expired. Please log in again.');
+        return false;
+      } finally {
+        setIsAuthenticating(false);
+        setIsLoading(false);
+      }
+    })();
+
+    authPromiseRef.current = promise;
+    try {
+      return await promise;
+    } finally {
+      authPromiseRef.current = null;
+    }
   }, []);
 
   const logout = useCallback(() => {
@@ -511,6 +562,7 @@ export function APIProvider({ children }: { children: React.ReactNode }) {
     login,
     logout,
     autoLogin,
+    tokenLogin,
     reconnect,
     sessionExpired,
     refreshCredits,

@@ -3,5 +3,6 @@
   "version": "1.0.0",
   "description": "Web client for OpenSubtitles AI API",
   "author": "OpenSubtitles Team",
-  "userAgent": "aios v1"
+  "userAgent": "aios v1",
+  "publicApiKey": "5MGRBWO9lHA023KPmVMaa0PoRYHqQKpK"
 }
