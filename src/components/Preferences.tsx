@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAPI } from '../contexts/APIContext';
 import CacheManager from '../services/cache';
+import { TranslationInfo, TranscriptionInfo } from '../services/api';
+import { consolidateLanguages } from '../utils/languageMapper';
 
 const DEFAULT_FILENAME_FORMAT = '{filename}.{language_code}.{type}.{extension}';
 
@@ -12,6 +14,41 @@ function Preferences({ setAppProcessing }: PreferencesProps) {
   const { config, updateConfig, api } = useAPI();
   const [cacheCleared, setCacheCleared] = useState(false);
   const [tokenInvalidated, setTokenInvalidated] = useState(false);
+  const [translationInfo, setTranslationInfo] = useState<TranslationInfo | null>(null);
+  const [transcriptionInfo, setTranscriptionInfo] = useState<TranscriptionInfo | null>(null);
+
+  useEffect(() => {
+    api.getTranslationInfo().then(result => {
+      if (result.success && result.data) setTranslationInfo(result.data);
+    });
+    api.getTranscriptionInfo().then(result => {
+      if (result.success && result.data) setTranscriptionInfo(result.data);
+    });
+  }, [api]);
+
+  const preferredTranslationLanguageOptions = useMemo(() => {
+    const model = config?.preferredTranslationModel;
+    if (!model) return [];
+    const languages = translationInfo?.languages?.[model];
+    if (!languages?.length) return [];
+    return consolidateLanguages({ [model]: languages }).filter(lang => lang.id !== 'auto-detect');
+  }, [config?.preferredTranslationModel, translationInfo]);
+
+  const handlePreferredTranslationModelChange = (model: string) => {
+    if (!model) {
+      updateConfig({ preferredTranslationModel: undefined, preferredTranslationLanguage: undefined });
+      return;
+    }
+    const languages = translationInfo?.languages?.[model];
+    const currentLanguage = config?.preferredTranslationLanguage;
+    let languageToKeep: string | undefined;
+    if (currentLanguage && languages?.length) {
+      const supported = consolidateLanguages({ [model]: languages })
+        .some(lang => lang.id === currentLanguage);
+      languageToKeep = supported ? currentLanguage : undefined;
+    }
+    updateConfig({ preferredTranslationModel: model, preferredTranslationLanguage: languageToKeep });
+  };
 
   const handleClearCache = () => {
     CacheManager.clear();
@@ -63,6 +100,23 @@ function Preferences({ setAppProcessing }: PreferencesProps) {
     fontSize: '13px',
     cursor: 'pointer',
     minWidth: '120px',
+  };
+
+  const groupStyle: React.CSSProperties = {
+    padding: '12px',
+    backgroundColor: 'var(--bg-tertiary)',
+    borderRadius: '6px',
+    border: '1px solid var(--border-color)',
+    marginBottom: '4px',
+  };
+
+  const groupCaptionStyle: React.CSSProperties = {
+    fontSize: '12px',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    color: 'var(--text-secondary)',
+    marginBottom: '4px',
   };
 
   const toggleStyle = (active: boolean): React.CSSProperties => ({
@@ -163,6 +217,74 @@ function Preferences({ setAppProcessing }: PreferencesProps) {
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
             <span>60s</span>
             <span>300s</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Translation & Transcription */}
+      <div style={sectionStyle}>
+        <div style={sectionTitleStyle}>
+          <i className="fas fa-star" style={{ marginRight: '8px' }}></i>
+          Translation &amp; Transcription
+        </div>
+        <div style={groupStyle}>
+          <div style={groupCaptionStyle}>Translation</div>
+          <div style={rowStyle}>
+            <div>
+              <div style={labelStyle}>Preferred Translation Model</div>
+              <div style={sublabelStyle}>Preselected for new translation tasks when compatible with the detected language</div>
+            </div>
+            <select
+              style={selectStyle}
+              value={config?.preferredTranslationModel ?? ''}
+              onChange={(e) => handlePreferredTranslationModelChange(e.target.value)}
+              disabled={!translationInfo}
+              aria-label="Preferred translation model"
+            >
+              <option value="">None (server default)</option>
+              {(translationInfo?.apis ?? []).map((model: string) => (
+                <option key={model} value={model}>{model.toUpperCase()}</option>
+              ))}
+            </select>
+          </div>
+          <div style={rowStyle}>
+            <div>
+              <div style={labelStyle}>Preferred Translation Language</div>
+              <div style={sublabelStyle}>Target language for the preferred translation model</div>
+            </div>
+            <select
+              style={selectStyle}
+              value={config?.preferredTranslationLanguage ?? ''}
+              onChange={(e) => updateConfig({ preferredTranslationLanguage: e.target.value || undefined })}
+              disabled={!config?.preferredTranslationModel || preferredTranslationLanguageOptions.length === 0}
+              aria-label="Preferred translation language"
+            >
+              <option value="">{config?.preferredTranslationModel ? 'Not set' : 'Select a model first'}</option>
+              {preferredTranslationLanguageOptions.map((lang) => (
+                <option key={lang.id} value={lang.id}>{lang.displayName}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div style={groupStyle}>
+          <div style={groupCaptionStyle}>Transcription</div>
+          <div style={rowStyle}>
+            <div>
+              <div style={labelStyle}>Preferred Transcription Engine</div>
+              <div style={sublabelStyle}>Preselected for new transcription tasks when compatible with the detected language</div>
+            </div>
+            <select
+              style={selectStyle}
+              value={config?.preferredTranscriptionEngine ?? ''}
+              onChange={(e) => updateConfig({ preferredTranscriptionEngine: e.target.value || undefined })}
+              disabled={!transcriptionInfo}
+              aria-label="Preferred transcription engine"
+            >
+              <option value="">None (server default)</option>
+              {(transcriptionInfo?.apis ?? []).map((engine: string) => (
+                <option key={engine} value={engine}>{engine.toUpperCase()}</option>
+              ))}
+            </select>
           </div>
         </div>
       </div>

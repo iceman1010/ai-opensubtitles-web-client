@@ -19,6 +19,9 @@ export interface AppConfig {
   persistDownloadQueue?: boolean;
   betaMode?: boolean;
   serverDevMode?: boolean;
+  preferredTranslationModel?: string;
+  preferredTranslationLanguage?: string;
+  preferredTranscriptionEngine?: string;
   credits?: {
     used: number;
     remaining: number;

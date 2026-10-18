@@ -15,6 +15,7 @@ import * as fileFormatsConfig from '../config/fileFormats.json';
 import SubtitlePreviewModal from './SubtitlePreviewModal';
 import QualityReportModal from './QualityReportModal';
 import { isVideoFile, isAudioFile, isSubtitleFile, isAudioVideoFile } from '../utils/fileTypeUtils';
+import { consolidateLanguages, getBestVariantForApi } from '../utils/languageMapper';
 
 interface QualitySummary {
   quality?: QualityReport;
@@ -44,6 +45,7 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
   const {
     isAuthenticated,
     credits,
+    config: configFromContext,
     transcriptionInfo: contextTranscriptionInfo,
     translationInfo,
     refreshCredits,
@@ -187,7 +189,10 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
   useEffect(() => {
     if (contextTranscriptionInfo) {
       if (contextTranscriptionInfo.apis.length > 0) {
-        const defaultModel = contextTranscriptionInfo.apis[0];
+        const preferredEngine = configFromContext?.preferredTranscriptionEngine;
+        const defaultModel = preferredEngine && contextTranscriptionInfo.apis.includes(preferredEngine)
+          ? preferredEngine
+          : contextTranscriptionInfo.apis[0];
         setTranscriptionOptions(prev => ({ ...prev, model: defaultModel }));
         loadTranscriptionLanguages(defaultModel);
       }
@@ -198,8 +203,22 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
     if (translationInfo) {
       setAvailableTranslationApis(translationInfo.apis);
       if (translationInfo.apis.length > 0) {
-        const defaultModel = translationInfo.apis[0];
-        setTranslationOptions(prev => ({ ...prev, model: defaultModel }));
+        const preferredModel = configFromContext?.preferredTranslationModel;
+        const defaultModel = preferredModel && translationInfo.apis.includes(preferredModel)
+          ? preferredModel
+          : translationInfo.apis[0];
+        setTranslationOptions(prev => {
+          const next = { ...prev, model: defaultModel };
+          if (defaultModel === preferredModel && configFromContext?.preferredTranslationLanguage) {
+            const consolidated = consolidateLanguages(translationInfo.languages);
+            const lang = consolidated.find(l =>
+              l.id === configFromContext.preferredTranslationLanguage && l.id !== 'auto-detect'
+            );
+            const bestVariant = lang ? getBestVariantForApi(lang, defaultModel) : null;
+            if (bestVariant) next.destinationLanguage = bestVariant;
+          }
+          return next;
+        });
         loadLanguagesForTranslationModel(defaultModel, translationInfo);
       }
     }
@@ -415,6 +434,26 @@ function MainScreen({ config, setAppProcessing, onNavigateToCredits, onCreditsUp
     }
 
     setCompatibleModels(compatible);
+
+    // Preferred model/engine preselections that are incompatible with the detected
+    // language are demoted to the first compatible model; manual selections are untouched
+    if (isSub && configFromContext?.preferredTranslationModel
+      && translationOptions.model === configFromContext.preferredTranslationModel
+      && compatible.translation.length > 0
+      && !compatible.translation.includes(configFromContext.preferredTranslationModel)) {
+      const fallbackModel = compatible.translation[0];
+      setTranslationOptions(prev => ({ ...prev, model: fallbackModel, destinationLanguage: '' }));
+      loadLanguagesForTranslationModel(fallbackModel);
+    }
+
+    if (isAV && configFromContext?.preferredTranscriptionEngine
+      && transcriptionOptions.model === configFromContext.preferredTranscriptionEngine
+      && compatible.transcription.length > 0
+      && !compatible.transcription.includes(configFromContext.preferredTranscriptionEngine)) {
+      const fallbackEngine = compatible.transcription[0];
+      setTranscriptionOptions(prev => ({ ...prev, model: fallbackEngine }));
+      loadTranscriptionLanguages(fallbackEngine);
+    }
   };
 
   const triggerCreditsAnimation = () => {
