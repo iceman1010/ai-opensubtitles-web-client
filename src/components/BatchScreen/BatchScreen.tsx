@@ -8,7 +8,7 @@ import * as fileFormatsConfig from '../../config/fileFormats.json';
 import SubtitlePreviewModal from '../SubtitlePreviewModal';
 import QualityReportModal from '../QualityReportModal';
 import { BatchScreenProps, BatchFile, BatchSettings } from './types';
-import { getLanguagesForModel, autoSelectSourceLanguage, computeEstimatedCost, computeQueueAnalysis, computeUiState, generateOutputFileName, validateLanguageSelection, findModelPrice } from './utils';
+import { getLanguagesForModel, autoSelectSourceLanguage, computeEstimatedCost, computeQueueAnalysis, computeUiState, generateOutputFileName, validateLanguageSelection, findModelPrice, findModelsCompatibleWithAllCodes, getPreferredLanguageVariantForModel } from './utils';
 import { useQueueManager } from './hooks/useQueueManager';
 import { useLanguageDetection } from './hooks/useLanguageDetection';
 import { useBatchProcessor } from './hooks/useBatchProcessor';
@@ -22,6 +22,10 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
   const api = useAPI();
 
   const isProcessingRef = useRef(false);
+
+  // Once the user manually changes a model in the UI, preferred-model
+  // auto-selection and demotion stop touching that selection
+  const userSelectedModelsRef = useRef({ transcription: false, translation: false });
 
   const [batchSettings, setBatchSettings] = useState<BatchSettings>({
     transcriptionModel: '',
@@ -116,18 +120,27 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
 
   useEffect(() => {
     if (!languagesLoaded && api.transcriptionInfo && api.transcriptionInfo.apis.length > 0) {
-      const defaultModel = api.transcriptionInfo.apis[0];
+      const preferredEngine = api.config?.preferredTranscriptionEngine;
+      const defaultModel = preferredEngine && api.transcriptionInfo.apis.includes(preferredEngine)
+        ? preferredEngine
+        : api.transcriptionInfo.apis[0];
       setBatchSettings(prev => ({ ...prev, transcriptionModel: defaultModel }));
     }
-  }, [api.transcriptionInfo, languagesLoaded]);
+  }, [api.transcriptionInfo, api.config?.preferredTranscriptionEngine, languagesLoaded]);
 
   useEffect(() => {
     if (!languagesLoaded && api.translationInfo && api.translationInfo.apis.length > 0) {
-      const defaultModel = api.translationInfo.apis[0];
+      const preferredModel = api.config?.preferredTranslationModel;
+      const defaultModel = preferredModel && api.translationInfo.apis.includes(preferredModel)
+        ? preferredModel
+        : api.translationInfo.apis[0];
+      const preferredLanguageId = defaultModel === preferredModel
+        ? api.config?.preferredTranslationLanguage
+        : undefined;
       setBatchSettings(prev => ({ ...prev, translationModel: defaultModel }));
-      loadLanguagesForTranslationModel(defaultModel, api.translationInfo);
+      loadLanguagesForTranslationModel(defaultModel, api.translationInfo, preferredLanguageId);
     }
-  }, [api.translationInfo, languagesLoaded]);
+  }, [api.translationInfo, api.config?.preferredTranslationModel, api.config?.preferredTranslationLanguage, languagesLoaded]);
 
   useEffect(() => {
     if (uiState.shouldDisableChaining && enableChaining) {
@@ -135,7 +148,7 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
     }
   }, [uiState.shouldDisableChaining, enableChaining]);
 
-  const loadLanguagesForTranslationModel = async (modelId: string, translationData?: any) => {
+  const loadLanguagesForTranslationModel = async (modelId: string, translationData?: any, preferredLanguageId?: string) => {
     setIsLoadingLanguages(true);
     try {
       const dataToUse = translationData || api.translationInfo;
@@ -143,6 +156,12 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
         const modelLanguages = dataToUse.languages[modelId];
         setAvailableTranslationLanguages(Array.isArray(modelLanguages) ? modelLanguages : []);
         setBatchSettings(prev => {
+          if (Array.isArray(modelLanguages)) {
+            const preferredVariant = getPreferredLanguageVariantForModel(modelLanguages, modelId, preferredLanguageId);
+            if (preferredVariant) {
+              return { ...prev, targetLanguage: preferredVariant };
+            }
+          }
           const currentTargetLang = prev.targetLanguage;
           const isCurrentAvailable = Array.isArray(modelLanguages) &&
             modelLanguages.some((lang: LanguageInfo) => lang.language_code === currentTargetLang);
@@ -158,8 +177,9 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
           const languagesArray = Array.isArray(result.data) ? result.data : [];
           setAvailableTranslationLanguages(languagesArray);
           if (languagesArray.length > 0) {
-            const defaultLang = languagesArray.find((lang: LanguageInfo) => lang.language_code === 'en') || languagesArray[0];
-            setBatchSettings(prev => ({ ...prev, targetLanguage: defaultLang.language_code }));
+            const preferredVariant = getPreferredLanguageVariantForModel(languagesArray, modelId, preferredLanguageId);
+            const fallbackLang = languagesArray.find((lang: LanguageInfo) => lang.language_code === 'en') || languagesArray[0];
+            setBatchSettings(prev => ({ ...prev, targetLanguage: preferredVariant || fallbackLang.language_code }));
           }
         }
       }
@@ -195,6 +215,64 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
       return file;
     }));
   };
+
+  const handleManualTranscriptionModelChange = (newModel: string) => {
+    userSelectedModelsRef.current.transcription = true;
+    handleTranscriptionModelChange(newModel);
+  };
+
+  const handleManualTranslationModelChange = (newModel: string) => {
+    userSelectedModelsRef.current.translation = true;
+    handleTranslationModelChange(newModel);
+  };
+
+  // Preferred model/engine preselections that are incompatible with the detected
+  // queue languages are demoted to the first model supporting all of them;
+  // manual selections are untouched
+  useEffect(() => {
+    if (processor.isProcessing) return;
+    const preferredEngine = api.config?.preferredTranscriptionEngine;
+    if (!preferredEngine || userSelectedModelsRef.current.transcription
+      || batchSettings.transcriptionModel !== preferredEngine || !api.transcriptionInfo) return;
+
+    const detectedCodes = queueManager.queue
+      .filter(f => f.type === 'transcription' && f.status === 'pending' && f.detectedLanguage?.ISO_639_1)
+      .map(f => f.detectedLanguage!.ISO_639_1);
+    if (detectedCodes.length === 0) return;
+
+    const compatible = findModelsCompatibleWithAllCodes(
+      api.transcriptionInfo.apis,
+      api.transcriptionInfo.languages,
+      detectedCodes,
+    );
+    if (compatible.length > 0 && !compatible.includes(preferredEngine)) {
+      handleTranscriptionModelChange(compatible[0]);
+    }
+  }, [queueManager.queue, batchSettings.transcriptionModel, api.config?.preferredTranscriptionEngine, api.transcriptionInfo, processor.isProcessing]);
+
+  useEffect(() => {
+    if (processor.isProcessing) return;
+    const preferredModel = api.config?.preferredTranslationModel;
+    if (!preferredModel || userSelectedModelsRef.current.translation
+      || batchSettings.translationModel !== preferredModel || !api.translationInfo) return;
+
+    // When chaining is enabled, transcription files feed the translation step,
+    // so their detected languages constrain the translation model as well
+    const detectedCodes = queueManager.queue
+      .filter(f => (f.type === 'translation' || (enableChaining && f.type === 'transcription'))
+        && f.status === 'pending' && f.detectedLanguage?.ISO_639_1)
+      .map(f => f.detectedLanguage!.ISO_639_1);
+    if (detectedCodes.length === 0) return;
+
+    const compatible = findModelsCompatibleWithAllCodes(
+      api.translationInfo.apis,
+      api.translationInfo.languages,
+      detectedCodes,
+    );
+    if (compatible.length > 0 && !compatible.includes(preferredModel)) {
+      handleTranslationModelChange(compatible[0]);
+    }
+  }, [queueManager.queue, batchSettings.translationModel, enableChaining, api.config?.preferredTranslationModel, api.translationInfo, processor.isProcessing]);
 
   const completedFiles = useMemo(() =>
     queueManager.queue.filter(f => f.status === 'completed' && f.outputContent),
@@ -345,8 +423,8 @@ const BatchScreen: React.FC<BatchScreenProps> = ({ config, setAppProcessing, onP
           translationInfo={api.translationInfo}
           availableTranslationLanguages={availableTranslationLanguages}
           isLoadingLanguages={isLoadingLanguages}
-          onTranscriptionModelChange={handleTranscriptionModelChange}
-          onTranslationModelChange={handleTranslationModelChange}
+          onTranscriptionModelChange={handleManualTranscriptionModelChange}
+          onTranslationModelChange={handleManualTranslationModelChange}
         />
       )}
 

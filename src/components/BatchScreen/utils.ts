@@ -2,6 +2,7 @@ import { LanguageInfo, ServiceModel, ServicesInfo } from '../../services/api';
 import { BatchFile, BatchSettings, BatchCreditStats } from './types';
 import { generateFilename } from '../../utils/filenameGenerator';
 import { isAudioVideoFile } from '../../utils/fileTypeUtils';
+import { consolidateLanguages, getBestVariantForApi } from '../../utils/languageMapper';
 
 export const getLanguagesForModel = (
   languages: LanguageInfo[] | { [apiName: string]: LanguageInfo[] } | undefined,
@@ -50,6 +51,50 @@ export const autoSelectSourceLanguage = (
   if (matching.length === 1) return matching[0].language_code;
   if (detectedCode && matching.length > 0) return matching[0].language_code;
   return undefined;
+};
+
+// Same matching semantics as MainScreen's findCompatibleModels:
+// an API language supports a detected code when it is equal, is a region
+// variant of it (de vs de-DE), or shares the same base code.
+export const languageCodeMatches = (detectedCode: string, apiCode: string): boolean => {
+  const detected = detectedCode.toLowerCase();
+  const api = apiCode.toLowerCase();
+  if (api === detected) return true;
+  if (api.startsWith(detected + '-') || api.startsWith(detected + '_')) return true;
+  return api.split(/[-_]/)[0] === detected;
+};
+
+export const findModelsCompatibleWithAllCodes = (
+  apis: string[] | undefined,
+  languagesByApi: { [apiName: string]: LanguageInfo[] } | LanguageInfo[] | undefined,
+  detectedCodes: string[],
+): string[] => {
+  if (!apis?.length || detectedCodes.length === 0) return [];
+  const uniqueCodes = Array.from(new Set(detectedCodes.map(code => code.toLowerCase())));
+  const getLanguagesFor = (api: string): LanguageInfo[] => {
+    if (Array.isArray(languagesByApi)) return languagesByApi;
+    return (languagesByApi as { [apiName: string]: LanguageInfo[] })?.[api] || [];
+  };
+  return apis.filter(api => {
+    const apiLanguages = getLanguagesFor(api);
+    if (apiLanguages.length === 0) return false;
+    return uniqueCodes.every(code =>
+      apiLanguages.some(lang => languageCodeMatches(code, lang.language_code)),
+    );
+  });
+};
+
+// Maps a preferred language (stored as a consolidated id, e.g. 'german') to the
+// best raw language_code variant offered by the given model.
+export const getPreferredLanguageVariantForModel = (
+  modelLanguages: LanguageInfo[],
+  model: string,
+  preferredLanguageId: string | undefined,
+): string | null => {
+  if (!modelLanguages.length || !preferredLanguageId || preferredLanguageId === 'auto-detect') return null;
+  const consolidated = consolidateLanguages({ [model]: modelLanguages });
+  const lang = consolidated.find(l => l.id === preferredLanguageId && l.id !== 'auto-detect');
+  return lang ? getBestVariantForApi(lang, model) : null;
 };
 
 export const generateOutputFileName = (

@@ -232,7 +232,7 @@ function Preferences({ setAppProcessing }: PreferencesProps) {
           <div style={rowStyle}>
             <div>
               <div style={labelStyle}>Preferred Translation Model</div>
-              <div style={sublabelStyle}>Preselected for new translation tasks when compatible with the detected language</div>
+              <div style={sublabelStyle}>Preselected for new translation tasks (single and batch) when compatible with the detected language(s)</div>
             </div>
             <select
               style={selectStyle}
@@ -271,7 +271,7 @@ function Preferences({ setAppProcessing }: PreferencesProps) {
           <div style={rowStyle}>
             <div>
               <div style={labelStyle}>Preferred Transcription Engine</div>
-              <div style={sublabelStyle}>Preselected for new transcription tasks when compatible with the detected language</div>
+              <div style={sublabelStyle}>Preselected for new transcription tasks (single and batch) when compatible with the detected language(s)</div>
             </div>
             <select
               style={selectStyle}
